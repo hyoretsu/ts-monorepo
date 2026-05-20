@@ -1,5 +1,0 @@
-#!/bin/sh
-
-# git branch -u origin/$(git symbolic-ref --short HEAD)
-git pull
-exit 0
