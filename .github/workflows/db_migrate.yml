@@ -8,16 +8,23 @@ on:
       - packages/sql/src/migrations/**
 
 jobs:
-  deploy:
+  migrate:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
       - name: Install dependencies
-        run: bun i
+        run: bun i --frozen-lockfile
       - name: Apply all pending migrations to the database
-        run: bun turbo -F sql migrate:deploy
+        run: bun -F sql migrate:deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

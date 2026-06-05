@@ -11,30 +11,27 @@ const defaultApiUrl = `http://localhost:${port}`;
 const apiUrl = (process.env.API_URL ?? defaultApiUrl) as string;
 
 export const envSchema = t.Object({
-	API_URL: t.Optional(
+	API_URL: t.String({
+		default: defaultApiUrl,
+		format: "uri",
+	}),
+	APP_URL: t.String({
+		default: "http://localhost:3000",
+		format: "uri",
+	}),
+	BETTER_AUTH_SECRETS: t.String({ default: "1:secret" }),
+	BETTER_AUTH_URL: t.String({ default: `${apiUrl}` }),
+	CORS_WHITELIST: t.String({ default: "*" }),
+	DATABASE_TEST_URL: t.Optional(
 		t.String({
-			default: defaultApiUrl,
+			default: "postgresql://postgres:password@localhost:5432/vivendo_de_bet_test",
 			format: "uri",
 		}),
 	),
-	APP_URL: t.Optional(
-		t.String({
-			default: "http://localhost:3000",
-			format: "uri",
-		}),
-	),
-	BETTER_AUTH_SECRETS: t.Optional(t.String()),
-	BETTER_AUTH_URL: t.Optional(
-		t.String({
-			default: `${apiUrl}`,
-		}),
-	),
-	CORS_WHITELIST: t.Optional(
-		t.String({
-			default: "*",
-		}),
-	),
-	DATABASE_URL: t.String({ format: "uri" }),
+	DATABASE_URL: t.String({
+		default: "postgresql://postgres:password@localhost:5432/vivendo_de_bet",
+		format: "uri",
+	}),
 	MAIL_DRIVER: t.Enum(MailProvidersEnum),
 	MAIL_HOST: t.String(),
 	MAIL_PASS: t.String(),

@@ -1,11 +1,13 @@
+import { render } from "@react-email/components";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
+import { ResetPasswordEmail } from "@/modules/users/emails";
+import { mailer } from "./mail";
 import { prisma } from "./sql";
 
 const algorithm = "argon2id";
 
 export const auth = betterAuth({
-	// basePath: "/api/auth",
 	basePath: "/auth",
 	database: prismaAdapter(prisma, {
 		provider: "postgresql",
@@ -17,17 +19,18 @@ export const auth = betterAuth({
 			hash: password => Bun.password.hash(password, { algorithm }),
 			verify: ({ hash, password }) => Bun.password.verify(password, hash, algorithm),
 		},
+		sendResetPassword: async ({ url, user }) => {
+			await mailer.sendMail({
+				from: `"Vivendo de Bet" <${process.env.MAIL_USER}>`,
+				html: await render(ResetPasswordEmail({ name: user.name, url })),
+				subject: "Redefinição de senha",
+				text: `Olá, ${user.name}! Acesse o link para redefinir sua senha: ${url}. O link expira em 1 hora.`,
+				to: user.email,
+			});
+		},
 	},
 	experimental: {
 		joins: true,
-	},
-	session: {
-		additionalFields: {
-			activeCompanyId: {
-				required: false,
-				type: "string",
-			},
-		},
 	},
 	trustedOrigins: process.env.CORS_WHITELIST!.split(","),
 });

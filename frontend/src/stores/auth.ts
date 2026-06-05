@@ -1,75 +1,42 @@
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
+
+export type UserRole = "USER" | "ADMIN";
+export type KycStatus = "NOT_SUBMITTED" | "SUBMITTED" | "APPROVED" | "REJECTED";
 
 export interface AuthUser {
+	createdAt: number | string | Date;
+	document: string | null;
 	email: string;
+	emailVerified: boolean;
 	id: string;
+	image: string | null;
+	kycStatus: string;
 	name: string;
+	role: string;
 }
 
 export interface AuthState {
-	clearError: () => void;
-	error: string | null;
+	hydrated: boolean;
 	isAuthenticated: boolean;
-	isLoading: boolean;
-	logout: () => void;
-	signIn: (credentials: {
-		defaultUserName: string;
-		email: string;
-		invalidCredentialsMessage: string;
-		password: string;
-	}) => Promise<boolean>;
+	role: string | null;
+	setUser: (user: AuthUser | null) => void;
 	user: AuthUser | null;
 }
 
-export const useAuthStore = create<AuthState>()(
-	persist(
-		set => ({
-			clearError: () => set({ error: null }),
-			error: null,
-			isAuthenticated: false,
-			isLoading: false,
-			logout: () => {
-				set({
-					error: null,
-					isAuthenticated: false,
-					user: null,
-				});
-			},
-			signIn: async ({ defaultUserName, email, invalidCredentialsMessage, password }) => {
-				set({ error: null, isLoading: true });
-
-				await new Promise(resolve => window.setTimeout(resolve, 350));
-
-				if (!email || password.length < 6) {
-					set({
-						error: invalidCredentialsMessage,
-						isLoading: false,
-					});
-					return false;
-				}
-
-				set({
-					error: null,
-					isAuthenticated: true,
-					isLoading: false,
-					user: {
-						email,
-						id: crypto.randomUUID(),
-						name: email.split("@")[0] || defaultUserName,
-					},
-				});
-				return true;
-			},
-			user: null,
+export const useAuthStore = create<AuthState>(set => ({
+	hydrated: false,
+	isAuthenticated: false,
+	role: null,
+	setUser: user =>
+		set({
+			hydrated: true,
+			isAuthenticated: !!user,
+			role: user?.role ?? null,
+			user,
 		}),
-		{
-			name: "template-auth",
-			partialize: state => ({
-				isAuthenticated: state.isAuthenticated,
-				user: state.user,
-			}),
-			storage: createJSONStorage(() => localStorage),
-		},
-	),
-);
+	user: null,
+}));
+
+export function isAdmin(role: string | null | undefined): boolean {
+	return role === "ADMIN";
+}

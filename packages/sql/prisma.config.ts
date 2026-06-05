@@ -1,3 +1,4 @@
+import path from "node:path";
 import { defineConfig } from "prisma/config";
 import "dotenv/config";
 
@@ -7,7 +8,7 @@ export default defineConfig({
 	},
 	migrations: {
 		path: "./src/migrations",
-		seed: "npm run ./src/seed/index.ts",
+		seed: `bun ${path.resolve(__dirname, "./src/seed/index.ts")}`,
 	},
 	schema: "./src/models",
 });

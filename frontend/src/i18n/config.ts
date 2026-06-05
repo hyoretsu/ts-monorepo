@@ -3,7 +3,8 @@ import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 import enUS from "./locales/en-US.json";
 
-export const supportedLngs = ["en-US", "pt-PT"] as const;
+export const supportedLngs = ["en-US"] as const;
+export type SupportedLanguage = (typeof supportedLngs)[number];
 
 if (!i18n.isInitialized) {
 	i18n

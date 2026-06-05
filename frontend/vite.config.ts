@@ -2,6 +2,7 @@ import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import svgr from "vite-plugin-svgr";
+import "dotenv/config";
 
 const host = process.env.TAURI_DEV_HOST;
 

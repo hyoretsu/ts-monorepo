@@ -7,10 +7,11 @@ import "dotenv/config";
 
 const env = globalThis.process?.env;
 
-const databaseUrl = env?.DATABASE_URL;
-if (!databaseUrl) {
-	throw new Error("DATABASE_URL is required for Prisma adapter");
-}
+// PrismaPg connects lazily, so importing this module never opens a connection. Build-only
+// steps that import the client transitively (e.g. `prisma generate`, the OpenAPI export,
+// type-checking) must not require a live DATABASE_URL. We therefore fall back to a harmless
+// placeholder when it is absent and only fail when a query is actually issued.
+const databaseUrl = env?.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/example";
 
 export const adapter = new PrismaPg({
 	connectionString: databaseUrl,

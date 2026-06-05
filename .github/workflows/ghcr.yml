@@ -1,4 +1,4 @@
-name: Build and Publish Docker Images to GHCR
+name: Build and Publish to GHCR
 
 on:
   push:
@@ -7,55 +7,55 @@ on:
   workflow_dispatch:
 
 jobs:
-  changes:
-    name: Detect changed services
+  detect:
+    name: Detect affected
     runs-on: ubuntu-latest
     outputs:
-      services: ${{ steps.list.outputs.services }}
+      # {"build":["backend",...]} — deployable services whose Docker image must be
+      # rebuilt. A matrix built from [] spawns no jobs, so an unaffected push is
+      # skipped without emitting a new image.
+      tasks: ${{ steps.affected.outputs.tasks }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-
-      - name: Filter changed paths
-        id: filter
-        uses: dorny/paths-filter@v3
         with:
-          filters: |
-            backend:
-              - 'backend/**'
-              - 'packages/sql/**'
-              - 'bun.lock'
-              - 'package.json'
-              - 'tsconfig.json'
-              - '.github/workflows/ghcr.yml'
-            frontend:
-              - 'frontend/**'
-              - 'bun.lock'
-              - 'package.json'
-              - 'tsconfig.json'
-              - '.github/workflows/ghcr.yml'
+          fetch-depth: 0
 
-      - name: Build service list
-        id: list
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun i --frozen-lockfile
+
+      - name: Compute affected deployable services
+        id: affected
         env:
           EVENT: ${{ github.event_name }}
-          BACKEND_CHANGED: ${{ steps.filter.outputs.backend }}
-          FRONTEND_CHANGED: ${{ steps.filter.outputs.frontend }}
+          BEFORE: ${{ github.event.before }}
         run: |
-          services=()
-          if [[ "$EVENT" == "workflow_dispatch" ]]; then
-            services=(backend frontend)
+          # Services that ship a Docker image. Each must have a matrix entry below.
+          deployable='["backend","frontend"]'
+          # Ask Turbo what its `build` task would actually run. On push it uses its
+          # input/dependency-graph + lockfile hashing vs the previous commit, so a
+          # service is affected only when its own src, a workspace dependency, or the
+          # lockfile changed — unchanged services emit no image. A manual dispatch (or
+          # a missing/zero base ref, e.g. a branch's first push) plans every service.
+          if [[ "$EVENT" == "workflow_dispatch" || -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]]; then
+            dry=$(bun turbo run build --dry-run=json)
           else
-            [[ "$BACKEND_CHANGED" == "true" ]] && services+=(backend)
-            [[ "$FRONTEND_CHANGED" == "true" ]] && services+=(frontend)
+            dry=$(TURBO_SCM_BASE="$BEFORE" bun turbo run build --affected --dry-run=json)
           fi
-          json=$(printf '%s\n' "${services[@]}" | jq -R . | jq -sc .)
-          echo "services=$json" >> "$GITHUB_OUTPUT"
+          # Keep packages that genuinely run `build` (skip <NONEXISTENT> dep tasks),
+          # then intersect with the deployable set.
+          affected=$(jq -c --argjson deploy "$deployable" \
+            '[.tasks[] | select(.task == "build" and .command != "<NONEXISTENT>") | .package]
+             | unique | map(select(. as $p | $deploy | index($p)))' <<<"$dry")
+          echo "tasks={\"build\":$affected}" >> "$GITHUB_OUTPUT"
 
-  build:
-    name: Build ${{ matrix.service }} image
-    needs: changes
-    if: needs.changes.outputs.services != '[]'
+  build_publish:
+    name: Build and publish ${{ matrix.service }} image
+    needs: detect
+    if: ${{ fromJSON(needs.detect.outputs.tasks).build[0] }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -63,7 +63,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        service: ${{ fromJSON(needs.changes.outputs.services) }}
+        service: ${{ fromJSON(needs.detect.outputs.tasks).build }}
         include:
           - service: backend
             dockerfile: backend/Dockerfile
@@ -73,8 +73,8 @@ jobs:
             dockerfile: frontend/Dockerfile
             build_args: |
               NODE_ENV=production
-              NEXT_PUBLIC_API_URL=${{ vars.NEXT_PUBLIC_API_URL || 'http://localhost:3333' }}
-              NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
+              VITE_API_URL=${{ vars.VITE_API_URL }}
+              VITE_APP_URL=${{ vars.VITE_APP_URL }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
@@ -84,11 +84,13 @@ jobs:
 
       - name: Generate image metadata
         id: meta
-        run: |
-          IMAGE_NAME="$(echo "ghcr.io/${GITHUB_REPOSITORY}-${{ matrix.service }}" | tr '[:upper:]' '[:lower:]')"
-          DATE_TAG="$(date -u +'%Y%m%d')"
-          echo "image_name=${IMAGE_NAME}" >> "$GITHUB_OUTPUT"
-          echo "date_tag=${DATE_TAG}" >> "$GITHUB_OUTPUT"
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}_${{ matrix.service }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value={{date 'YYYYMMDD'}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -103,9 +105,8 @@ jobs:
           context: .
           file: ${{ matrix.dockerfile }}
           push: true
-          tags: |
-            ${{ steps.meta.outputs.image_name }}:${{ steps.meta.outputs.date_tag }}
-            ${{ steps.meta.outputs.image_name }}:latest
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: ${{ matrix.build_args }}
           secrets: ${{ matrix.service == 'backend' && format('DATABASE_URL={0}', secrets.DATABASE_URL) || '' }}
           cache-from: type=gha,scope=${{ matrix.service }}

@@ -1,5 +1,7 @@
 {
 	"compilerOptions": {
+		"composite": false,
+		"declaration": false,
 		"paths": {
 			"@/*": ["./src/*"]
 		},

@@ -1,4 +1,3 @@
-/* eslint-disable preserve-caught-error */
 import { execSync } from "node:child_process";
 
 const commands = new Map<string, () => void>([

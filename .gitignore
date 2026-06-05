@@ -2,12 +2,12 @@
 tmp/
 .cache
 *.log
-.expo
 !opengraph.*
 certificates
 
 # Artifacts
 build/
+coverage/
 generated/
 dist/
 out/
@@ -22,6 +22,9 @@ node_modules/
 .env
 .env*.local
 
+# Expo
+.expo
+
 # IDEs
 .idea
 .vscode
@@ -29,6 +32,10 @@ node_modules/
 !.vscode/launch.json
 !.vscode/settings.json
 !.vscode/tasks.json
+
+# Lefthook
+.githooks/
+lefthook-local.yml
 
 # Vendor
 .codex
@@ -41,9 +48,6 @@ node_modules/
 .vercel
 .vinext
 next-env.d.ts
-
-# Test files
-coverage/
 
 # TypeScript
 *.tsbuildinfo

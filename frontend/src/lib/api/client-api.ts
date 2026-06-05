@@ -1,25 +1,13 @@
 import { createClient } from "@hyoretsu/kubb/client";
-import ky, { isHTTPError } from "ky";
+import ky from "ky";
+
+const apiUrl = import.meta.env.VITE_API_URL ?? "http://localhost:3333";
 
 export type { Client, RequestConfig, ResponseConfig, ResponseErrorConfig } from "@hyoretsu/kubb/client";
-
 export default createClient(
 	ky.extend({
-		baseUrl: process.env.NEXT_PUBLIC_API_URL,
+		baseUrl: apiUrl,
 		credentials: "include",
-		hooks: {
-			beforeError: [
-				({ error }) => {
-					if (isHTTPError(error)) {
-						if (error.response.status === 401 && !window.location.pathname.startsWith("/auth")) {
-							window.location.replace("/auth");
-						}
-					}
-
-					return error;
-				},
-			],
-		},
 		timeout: false,
 	}),
 );

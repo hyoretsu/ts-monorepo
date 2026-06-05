@@ -1,0 +1,65 @@
+name: DB migration check
+
+on:
+  pull_request:
+
+jobs:
+  detect:
+    name: Detect affected
+    runs-on: ubuntu-latest
+    outputs:
+      # {"migrate:deploy":["sql"]} when a package with that task changed. A matrix
+      # built from [] spawns no jobs, so an unaffected PR is skipped.
+      tasks: ${{ steps.affected.outputs.tasks }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          # Need the base commit present to diff the PR against it.
+          fetch-depth: 0
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Compute affected packages with a migrate:deploy task
+        id: affected
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          tasks=$(bun scripts/affected-packages.ts "$BASE_SHA" migrate:deploy)
+          echo "tasks=$tasks" >> "$GITHUB_OUTPUT"
+
+  migrate:
+    name: Migrate check ${{ matrix.package }}
+    needs: detect
+    # DB-backed, so only on PRs targeting the deployable branches — same gate as e2e.
+    if: github.base_ref == 'main' || github.base_ref == 'staging'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package: ${{ fromJSON(needs.detect.outputs.tasks)['migrate:deploy'] }}
+    # Disposable database dedicated to CI migration testing — NOT production. The PR's
+    # pending migrations are applied here to prove they deploy cleanly before merge.
+    env:
+      DATABASE_URL: ${{ secrets.SHADOW_DATABASE_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Cache Bun install
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ hashFiles('bun.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-
+
+      - name: Install dependencies
+        run: bun i --frozen-lockfile
+
+      - name: Apply pending migrations to the disposable database
+        run: bun -F ${{ matrix.package }} migrate:deploy

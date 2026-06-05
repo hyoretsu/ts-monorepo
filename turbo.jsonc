@@ -7,6 +7,11 @@
 			"outputLogs": "new-only",
 			"outputs": ["build/**", "dist/**", "out/**", ".next/**", "!.next/cache/**"]
 		},
+		"check-types": {
+			"dependsOn": ["^export", "generate"],
+			"inputs": ["src/**", "tsconfig*.json"],
+			"outputLogs": "new-only"
+		},
 		"dev": {
 			"cache": false,
 			"dependsOn": ["^export", "generate"],
@@ -14,21 +19,37 @@
 		},
 		"export": {
 			"dependsOn": ["^export", "generate"],
+			"env": ["DATABASE_URL"],
 			"inputs": ["src/**", "!src/**/generated/**"],
 			"outputLogs": "new-only",
 			"outputs": ["out/**"]
 		},
 		"frontend#generate": {
-			"dependsOn": ["^export", "backend#export"],
+			"dependsOn": ["^export"],
 			"inputs": ["kubb.config.ts"],
 			"outputLogs": "new-only",
 			"outputs": ["src/lib/api/generated/**"]
 		},
 		"generate": {
 			"dependsOn": ["^export"],
+			"env": ["DATABASE_URL"],
 			"inputs": ["src/**", "!src/generated/**"],
 			"outputLogs": "new-only",
 			"outputs": ["src/generated/**"]
+		},
+		"test": {
+			"dependsOn": ["test:e2e", "test:unit"]
+		},
+		"test:e2e": {
+			"cache": false,
+			"dependsOn": ["^export"],
+			"env": ["DATABASE_TEST_URL", "DATABASE_URL"],
+			"inputs": ["**/*.e2e.test.ts"]
+		},
+		"test:unit": {
+			"dependsOn": ["^export"],
+			"inputs": ["**/*.test.ts", "!**/*.e2e.test.ts"],
+			"outputLogs": "new-only"
 		}
 	}
 }

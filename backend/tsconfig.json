@@ -7,5 +7,8 @@
 			"@/*": ["./src/*"]
 		}
 	},
-	"extends": ["@hyoretsu/configs/ts"]
+	"extends": ["@hyoretsu/configs/ts"],
+	// Only type-check source — never the bundled `dist/` output (it's emitted JS).
+	"include": ["src"],
+	"exclude": ["dist", "node_modules"]
 }
