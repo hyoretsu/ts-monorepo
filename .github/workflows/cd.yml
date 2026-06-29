@@ -1,0 +1,200 @@
+name: CD
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  detect:
+    name: Detect affected
+    runs-on: ubuntu-latest
+    outputs:
+      # {"build":["backend","frontend",...]} — only packages with a build script are included.
+      # The web (GHCR) job fans out over this list; the Tauri jobs gate on whether
+      # "frontend" is in it. A push that touches neither builds nothing.
+      # An empty base-sha (workflow_dispatch / first push) plans every service.
+      tasks: ${{ steps.affected.outputs.tasks }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+        with:
+          # Need history present so Turbo's --affected can diff against the base.
+          fetch-depth: 0
+
+      - name: Compute affected services
+        id: affected
+        uses: hyoretsu/gh-actions/detect-affected@main
+        with:
+          tasks: build
+          base-sha: ${{ github.event.before }}
+
+  ghcr:
+    name: Build and publish ${{ matrix.service }} image
+    needs: detect
+    if: ${{ fromJSON(needs.detect.outputs.tasks).build[0] }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJSON(needs.detect.outputs.tasks).build }}
+        include:
+          - service: backend
+            dockerfile: backend/Dockerfile
+            build_args: |
+              NODE_ENV=production
+          - service: frontend
+            dockerfile: frontend/Dockerfile
+            build_args: |
+              NODE_ENV=production
+              VITE_API_URL=${{ vars.VITE_API_URL }}
+              VITE_APP_URL=${{ vars.VITE_APP_URL }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}_${{ matrix.service }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=raw,value={{date 'YYYYMMDD'}}
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ matrix.build_args }}
+          secrets: ${{ matrix.service == 'backend' && format('DATABASE_URL={0}', secrets.DATABASE_URL) || '' }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  desktop:
+    name: Build & release ${{ matrix.label }} app
+    needs: detect
+    # Only the Tauri frontend produces these apps; skip when it isn't affected.
+    if: ${{ contains(fromJSON(needs.detect.outputs.tasks).build, 'frontend') }}
+    permissions:
+      # tauri-action creates the GitHub release / uploads the installers.
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: windows-latest
+            label: Windows
+          - platform: ubuntu-latest
+            label: Linux
+          - platform: macos-latest
+            label: macOS
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Build & release desktop app
+        uses: hyoretsu/gh-actions/tauri-build@main
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          release-name: Template App v__VERSION__
+
+  android:
+    name: Build & release Android app
+    needs: detect
+    if: ${{ contains(fromJSON(needs.detect.outputs.tasks).build, 'frontend') }}
+    runs-on: ubuntu-latest
+    permissions:
+      # softprops/action-gh-release creates the GitHub release / uploads the APK.
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Setup Tauri Android toolchain
+        id: setup
+        uses: hyoretsu/gh-actions/setup-tauri-android@main
+        with:
+          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
+
+      - name: Compute versionCode from commit timestamp
+        id: vc
+        # HEAD's committer epoch (minutes): deterministic per commit, monotonic on main,
+        # needs only HEAD (no full history) and stays well under Play's 2.1e9 ceiling.
+        run: echo "code=$(( $(git show -s --format=%ct HEAD) / 60 ))" >> "$GITHUB_OUTPUT"
+
+      - name: Read app version
+        id: version
+        # Tag the release after the app version (e.g. v1.0.0) — mirrors tauri-action's
+        # __VERSION__ that the desktop job expands.
+        run: echo "version=$(jq -r .version frontend/src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Build Android APK + AAB
+        working-directory: frontend
+        env:
+          NDK_HOME: ${{ steps.setup.outputs.ndk-home }}
+          # Unique, increasing versionCode so each Play upload is accepted.
+          ANDROID_VERSION_CODE: ${{ steps.vc.outputs.code }}
+        # tauri-action's mobile support is flaky, so drive the Tauri CLI directly.
+        # One invocation builds both formats and shares the compiled Rust libs.
+        run: bun tauri android build --apk --aab
+
+      - name: Publish APK to GitHub release
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          # Same tag the desktop job uses; the action creates it once and appends assets.
+          tag_name: v${{ steps.version.outputs.version }}
+          name: Template App v${{ steps.version.outputs.version }}
+          draft: false
+          prerelease: false
+          # AAB goes to Play, not the release — only attach the signed APK(s).
+          files: frontend/src-tauri/gen/android/app/build/outputs/apk/**/*-release.apk
+
+      - name: Upload AAB to Google Play
+        if: vars.ANDROID_PACKAGE_NAME != ''
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ vars.ANDROID_PACKAGE_NAME }}
+          releaseFiles: frontend/src-tauri/gen/android/app/build/outputs/bundle/**/*.aab
+          track: production
+          status: completed
+
+  ios:
+    name: Build iOS app (stub)
+    needs: detect
+    if: ${{ contains(fromJSON(needs.detect.outputs.tasks).build, 'frontend') }}
+    # Stub slot: iOS shipping needs a macOS runner, an Apple Developer account and
+    # signing certs/provisioning profiles that aren't wired up yet. Kept as a
+    # placeholder so the platform is tracked; flip to a real build once those exist.
+    runs-on: ubuntu-latest
+    steps:
+      - name: iOS build not configured
+        run: |
+          echo "::notice title=iOS::iOS build is a stub."
+          echo "To enable: run on macos-latest, 'bun tauri ios init', then"
+          echo "'bun tauri ios build' with APPLE signing secrets and a provisioning profile."

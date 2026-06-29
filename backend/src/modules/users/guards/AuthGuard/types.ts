@@ -1,7 +1,6 @@
 import { t } from "elysia";
 
 export const AuthGuardReturn = t.Object({
-	companyId: t.Optional(t.String()),
 	sessionToken: t.String(),
 	userId: t.String(),
 });

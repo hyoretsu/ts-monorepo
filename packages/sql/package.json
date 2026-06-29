@@ -7,6 +7,7 @@
 		"./typebox": "./out/prismabox/barrel.ts"
 	},
 	"scripts": {
+		"check-types": "tsc --noEmit",
 		"export": "prisma generate",
 		"migrate": "prisma migrate dev --create-only && npm run export",
 		"migrate:deploy": "prisma migrate deploy",

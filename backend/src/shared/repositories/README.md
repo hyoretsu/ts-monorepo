@@ -1,9 +1,9 @@
 # Repository layer (scaffolding)
 
-Standalone repository abstraction for the kernel domain (bets / breaches / challenges).
-Built as the foundation for migrating use-cases and services off the raw Prisma client so
-domain logic can be unit-tested against in-memory repositories (no DB, parallel) while E2E
-tests keep exercising the real database.
+Standalone repository abstraction for the kernel domain. Built as the foundation
+for migrating use-cases and services off the raw Prisma client so domain logic can
+be unit-tested against in-memory repositories (no DB, parallel) while E2E tests
+keep exercising the real database.
 
 > **Status: not yet wired in.** These modules compile and are fully implemented, but no
 > use-case/service consumes them yet. The migration is staged — see the rollout plan — to
@@ -13,8 +13,7 @@ tests keep exercising the real database.
 
 - `rows.ts` — plain row shapes returned by repositories (Decimal columns already `number`,
   timestamps `Date`). Use-cases and the existing `toXxxDTO` mappers consume these, never Prisma rows.
-- `<Aggregate>Repository.ts` — the interface per aggregate (`Bet`, `BankrollEvent`, `Breach`,
-  `Challenge`, `Phase`, `Rule`, `AuditLog`). Methods are named after how use-cases query today.
+- `<Aggregate>Repository.ts` — the interface per aggregate. Methods are named after how use-cases query.
 - `UnitOfWork.ts` — `UnitOfWork<Ctx>`: groups multi-aggregate writes into one atomic transaction.
   `TxClient` is the Prisma client or its `$transaction` callback client.
 - `index.ts` — `Repositories` (the kernel repo set) + `KernelUnitOfWork`.

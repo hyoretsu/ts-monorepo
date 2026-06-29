@@ -52,6 +52,6 @@ export const darkTheme = createDarkTheme({
 	},
 });
 
-export function getBetanoTheme(mode: ThemeMode) {
+export function getAppTheme(mode: ThemeMode) {
 	return mode === "dark" ? darkTheme : lightTheme;
 }

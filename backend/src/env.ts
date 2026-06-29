@@ -57,7 +57,6 @@ export const envSchema = t.Object({
 			default: path.resolve(__dirname, "..", "static"),
 		}),
 	),
-	// STORAGE_DRIVER: t.Enum(StorageProvidersEnum),
 });
 
 declare global {

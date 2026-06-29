@@ -1,7 +1,7 @@
 import { Section } from "@react-email/components";
 import { emailColors } from "./theme";
 
-/** VB badge + wordmark, matching the frontend BrandMark on the email header surface. */
+/** App badge + wordmark, matching the frontend BrandMark on the email header surface. */
 export function EmailBrandMark() {
 	return (
 		<Section>
@@ -24,7 +24,7 @@ export function EmailBrandMark() {
 								width: "32px",
 							}}
 						>
-							VB
+							TA
 						</div>
 					</td>
 					<td style={{ paddingLeft: "8px" }}>
@@ -36,7 +36,7 @@ export function EmailBrandMark() {
 								letterSpacing: "-0.02em",
 							}}
 						>
-							Vivendo de Bet
+							Template App
 						</span>
 					</td>
 				</tr>

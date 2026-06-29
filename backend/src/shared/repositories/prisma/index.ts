@@ -1,24 +1,10 @@
 import type { KernelUnitOfWork, Repositories } from "@/shared/repositories";
 import type { TxClient } from "@/shared/repositories/UnitOfWork";
-import { AuditLogPrismaRepository } from "./AuditLogPrismaRepository";
-import { BankrollEventPrismaRepository } from "./BankrollEventPrismaRepository";
-import { BetPrismaRepository } from "./BetPrismaRepository";
-import { BreachPrismaRepository } from "./BreachPrismaRepository";
-import { ChallengePrismaRepository } from "./ChallengePrismaRepository";
-import { PhasePrismaRepository } from "./PhasePrismaRepository";
-import { RulePrismaRepository } from "./RulePrismaRepository";
 
 /** Builds the kernel repository set bound to a Prisma client or transaction client. */
 export function buildPrismaRepositories(db: TxClient): Repositories {
-	return {
-		audit: new AuditLogPrismaRepository(db),
-		bankroll: new BankrollEventPrismaRepository(db),
-		bets: new BetPrismaRepository(db),
-		breaches: new BreachPrismaRepository(db),
-		challenges: new ChallengePrismaRepository(db),
-		phases: new PhasePrismaRepository(db),
-		rules: new RulePrismaRepository(db),
-	};
+	void db;
+	return {};
 }
 
 /**

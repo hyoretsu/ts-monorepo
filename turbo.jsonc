@@ -37,6 +37,11 @@
 			"outputLogs": "new-only",
 			"outputs": ["src/generated/**"]
 		},
+		"migrate:deploy": {
+			"env": ["DATABASE_URL", "DATABASE_TEST_URL"],
+			"inputs": ["src/migrations/**"],
+			"outputLogs": "new-only"
+		},
 		"test": {
 			"dependsOn": ["test:e2e", "test:unit"]
 		},

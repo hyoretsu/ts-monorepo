@@ -1,5 +1,13 @@
 {
 	"common": {
+		"actions": {
+			"cancel": "Cancel",
+			"confirm": "Confirm",
+			"ok": "OK"
+		},
+		"app": {
+			"name": "Template App"
+		},
 		"auth": {
 			"defaultUserName": "Demo user",
 			"errors": {

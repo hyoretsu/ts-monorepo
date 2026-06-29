@@ -21,7 +21,7 @@ export const auth = betterAuth({
 		},
 		sendResetPassword: async ({ url, user }) => {
 			await mailer.sendMail({
-				from: `"Vivendo de Bet" <${process.env.MAIL_USER}>`,
+				from: `"Template App" <${process.env.MAIL_USER}>`,
 				html: await render(ResetPasswordEmail({ name: user.name, url })),
 				subject: "Redefinição de senha",
 				text: `Olá, ${user.name}! Acesse o link para redefinir sua senha: ${url}. O link expira em 1 hora.`,

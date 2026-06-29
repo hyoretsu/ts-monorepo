@@ -4,7 +4,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "bun build src/main.ts --target bun --outdir ./dist",
+		"build": "bun build src/main.ts --target bun --packages external --outdir ./dist",
+		"check-types": "tsc --noEmit",
 		"dev": "bun --watch src/main.ts",
 		"export": "bun ./src/generateOpenApi.ts",
 		"start": "NODE_ENV=production bun dist/main.js"

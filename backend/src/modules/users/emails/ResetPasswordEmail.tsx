@@ -8,7 +8,7 @@ interface ResetPasswordEmailProps {
 
 export function ResetPasswordEmail({ name, url }: ResetPasswordEmailProps) {
 	return (
-		<EmailLayout preview="Redefina sua senha da Vivendo de Bet">
+		<EmailLayout preview="Redefina sua senha do Template App">
 			<Heading
 				style={{
 					color: emailColors.foreground,
@@ -55,7 +55,7 @@ export function ResetPasswordEmail({ name, url }: ResetPasswordEmailProps) {
 					margin: "0",
 				}}
 			>
-				© {new Date().getFullYear()} Vivendo de Bet. Plataforma simulada de teste de aptidão.
+				© {new Date().getFullYear()} Template App.
 			</Text>
 		</EmailLayout>
 	);

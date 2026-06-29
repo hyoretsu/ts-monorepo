@@ -4,7 +4,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { Client as Styletron } from "styletron-engine-monolithic";
 import { Provider as StyletronProvider } from "styletron-react";
 import { ConfirmDialog } from "./components/ui/ConfirmDialog";
-import { type BetanoThemeMode, getBetanoTheme } from "./lib/baseui-theme";
+import { getAppTheme, type ThemeMode } from "./lib/baseui-theme";
 import { reactQueryClient } from "./lib/tanstack";
 
 const styletron = new Styletron();
@@ -13,7 +13,7 @@ interface ProvidersProps {
 	children: ReactNode;
 }
 
-function getDocumentThemeMode(): BetanoThemeMode {
+function getDocumentThemeMode(): ThemeMode {
 	if (typeof document === "undefined") {
 		return "light";
 	}
@@ -30,7 +30,7 @@ function getDocumentThemeMode(): BetanoThemeMode {
 }
 
 export function Providers({ children }: ProvidersProps) {
-	const [themeMode, setThemeMode] = useState<BetanoThemeMode>(getDocumentThemeMode);
+	const [themeMode, setThemeMode] = useState<ThemeMode>(getDocumentThemeMode);
 
 	useEffect(() => {
 		const syncThemeMode = () => {
@@ -55,7 +55,7 @@ export function Providers({ children }: ProvidersProps) {
 	return (
 		<QueryClientProvider client={reactQueryClient}>
 			<StyletronProvider value={styletron}>
-				<BaseProvider theme={getBetanoTheme(themeMode)}>
+				<BaseProvider theme={getAppTheme(themeMode)}>
 					{children}
 					<ConfirmDialog />
 				</BaseProvider>

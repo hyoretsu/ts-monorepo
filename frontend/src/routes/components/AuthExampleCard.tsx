@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { HiArrowRightOnRectangle, HiCheckCircle, HiLockClosed } from "react-icons/hi2";
 import { Alert } from "@/components/ui/alert";
@@ -13,16 +13,6 @@ export function AuthExampleCard() {
 	const { clearError, error, isAuthenticated, isLoading, logout, signIn, user } = useAuthStore();
 	const [email, setEmail] = useState("demo@example.com");
 	const [password, setPassword] = useState("password");
-
-	const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		await signIn({
-			defaultUserName: t("auth.defaultUserName"),
-			email,
-			invalidCredentialsMessage: t("auth.errors.invalidCredentials"),
-			password,
-		});
-	};
 
 	return (
 		<Card>
@@ -50,7 +40,18 @@ export function AuthExampleCard() {
 						</Button>
 					</div>
 				) : (
-					<form className="space-y-4" onSubmit={handleSubmit}>
+					<form
+						className="space-y-4"
+						onSubmit={async event => {
+							event.preventDefault();
+							await signIn({
+								defaultUserName: t("auth.defaultUserName"),
+								email,
+								invalidCredentialsMessage: t("auth.errors.invalidCredentials"),
+								password,
+							});
+						}}
+					>
 						<Label>
 							{t("home.auth.emailLabel")}
 							<Input
@@ -58,6 +59,7 @@ export function AuthExampleCard() {
 									setEmail(event.target.value);
 									clearError();
 								}}
+								placeholder="demo@example.com"
 								type="email"
 								value={email}
 							/>
@@ -69,6 +71,7 @@ export function AuthExampleCard() {
 									setPassword(event.target.value);
 									clearError();
 								}}
+								placeholder="password"
 								type="password"
 								value={password}
 							/>
