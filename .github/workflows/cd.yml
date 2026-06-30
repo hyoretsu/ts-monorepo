@@ -57,38 +57,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Generate image metadata
-        id: meta
-        uses: docker/metadata-action@v5
+      - name: Build and publish image
+        uses: hyoretsu/gh-actions/ghcr@main
         with:
-          images: ghcr.io/${{ github.repository }}_${{ matrix.service }}
-          tags: |
-            type=sha,prefix=sha-,format=short
-            type=raw,value={{date 'YYYYMMDD'}}
-            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ${{ matrix.dockerfile }}
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          image: ghcr.io/${{ github.repository }}_${{ matrix.service }}
+          dockerfile: ${{ matrix.dockerfile }}
           build-args: ${{ matrix.build_args }}
           secrets: ${{ matrix.service == 'backend' && format('DATABASE_URL={0}', secrets.DATABASE_URL) || '' }}
-          cache-from: type=gha,scope=${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          cache-scope: ${{ matrix.service }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
   desktop:
     name: Build & release ${{ matrix.label }} app
@@ -131,35 +108,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
-      - name: Setup Tauri Android toolchain
-        id: setup
-        uses: hyoretsu/gh-actions/setup-tauri-android@main
+      - name: Build Android app (APK + AAB)
+        id: build
+        uses: hyoretsu/gh-actions/tauri-android-build@main
         with:
           keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-
-      - name: Compute versionCode from commit timestamp
-        id: vc
-        # HEAD's committer epoch (minutes): deterministic per commit, monotonic on main,
-        # needs only HEAD (no full history) and stays well under Play's 2.1e9 ceiling.
-        run: echo "code=$(( $(git show -s --format=%ct HEAD) / 60 ))" >> "$GITHUB_OUTPUT"
-
-      - name: Read app version
-        id: version
-        # Tag the release after the app version (e.g. v1.0.0) — mirrors tauri-action's
-        # __VERSION__ that the desktop job expands.
-        run: echo "version=$(jq -r .version frontend/src-tauri/tauri.conf.json)" >> "$GITHUB_OUTPUT"
-
-      - name: Build Android APK + AAB
-        working-directory: frontend
-        env:
-          NDK_HOME: ${{ steps.setup.outputs.ndk-home }}
-          # Unique, increasing versionCode so each Play upload is accepted.
-          ANDROID_VERSION_CODE: ${{ steps.vc.outputs.code }}
-        # tauri-action's mobile support is flaky, so drive the Tauri CLI directly.
-        # One invocation builds both formats and shares the compiled Rust libs.
-        run: bun tauri android build --apk --aab
 
       - name: Publish APK to GitHub release
         uses: softprops/action-gh-release@v2
@@ -167,20 +122,21 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           # Same tag the desktop job uses; the action creates it once and appends assets.
-          tag_name: v${{ steps.version.outputs.version }}
-          name: Template App v${{ steps.version.outputs.version }}
+          tag_name: v${{ steps.build.outputs.version }}
+          name: Template App v${{ steps.build.outputs.version }}
           draft: false
           prerelease: false
           # AAB goes to Play, not the release — only attach the signed APK(s).
-          files: frontend/src-tauri/gen/android/app/build/outputs/apk/**/*-release.apk
+          files: ${{ steps.build.outputs.apk-glob }}
 
+      # Store uploads consume the single build above; add one step per store.
       - name: Upload AAB to Google Play
         if: vars.ANDROID_PACKAGE_NAME != ''
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ vars.ANDROID_PACKAGE_NAME }}
-          releaseFiles: frontend/src-tauri/gen/android/app/build/outputs/bundle/**/*.aab
+          releaseFiles: ${{ steps.build.outputs.aab-glob }}
           track: production
           status: completed
 
