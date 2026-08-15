@@ -45,14 +45,11 @@ Use a plan in the top-level [`plans/`](plans/) folder only for large features ex
 - For a required plan, create one file per feature, named with a zero-padded sequential prefix: `NNNN-kebab-slug.md` (e.g. `0001-jb-delivery-mvp.md`). The number gives chronological order; the next plan takes the next number.
 - When starting or resuming work covered by a plan, **read** it from `plans/`. After **each completed step**, update progress and upcoming steps, then commit that update alongside the step's changes.
 
-## Pre-PR / Pre-Merge Checks — Required Before Staging or Main
+## Pre-PR / Pre-Merge Checks
 
-Before opening a PR or merging to `staging` or `main`, run a **type-check** and a **build check** — scoped to the **affected packages only** (don't rebuild the whole monorepo when one package changed). Both must pass before the merge/PR proceeds.
+Do not run formatting, linting, type-checking, or builds manually as routine pre-commit or pre-PR steps. A normal local `git commit` runs Lefthook's `pre-commit` checks automatically; do not use `--no-verify` or `LEFTHOOK=0`.
 
-- Type-check: `bun run check-types` (Turbo runs each package's `check-types` = `tsc --noEmit`).
-- Build: `bun run build` (Turbo's graph only rebuilds affected packages); scope with `turbo run build -F  when useful.
-
-Enforced automatically in two places, so commit validation is normally hands-off:
+Enforced automatically in two places:
 - **lefthook `pre-commit`** runs type-checking plus staged formatting/linting, and runs backend unit coverage when backend source is staged.
 - **CI** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs [`scripts/affected-packages.ts`](scripts/affected-packages.ts) once through the `hyoretsu/gh-actions/detect-affected` composite action and emits a JSON object keyed by task. It asks Turbo's dependency graph (`turbo run <task> --affected`, base = PR base commit) for packages that (a) are affected by the diff (changed **or** transitively depend on a changed package) and (b) define that task as a script. So a change to a shared lib also schedules downstream package jobs. Each downstream job (`check-types`, `build`, `unit`, `e2e`) is a **matrix over its own key**, so an unaffected package spawns no job; an empty list skips the check. `e2e` additionally gates on PRs targeting `staging`/`main` and the presence of `DATABASE_TEST_URL`.
 
