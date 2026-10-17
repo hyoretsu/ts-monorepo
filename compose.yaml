@@ -13,6 +13,7 @@ x-app: &app
     SERVICE_NAMESPACE: template_dev
     BETTER_AUTH_SECRETS: 1:local-template-development-secret-change-before-production
     BETTER_AUTH_URL: http://localhost:3333
+    APP_URL: http://localhost:5173
     CORS_WHITELIST: http://localhost:5173
     MAIL_DRIVER: nodemailer
     MAIL_HOST: mail

@@ -5,7 +5,7 @@ Approved scope: Prisma 7 + Kysely + Prismabox; Radix/ShadCN; active local Redis/
 ## Progress
 - [x] Backend: domain, transactions, outbox, worker, cache, auth storage and Example API.
 - [x] Frontend: Radix/ShadCN, shared UI, authenticated example, native links.
-- [ ] Operations: local Compose, isolated integration/E2E runner, workflows and docs.
+- [x] Operations: local Compose, isolated integration/E2E runner, workflows and docs.
 - [x] Guidelines: synchronize uploaded coding rules in template and Zaimu.
 - [ ] Verification and local integration commits.
 
@@ -25,3 +25,12 @@ Preserve pre-existing edits in AGENTS.md and CI/CD workflows when integrating. R
 - OpenAPI excludes internal wildcard routes, exports OpenAPI 3.1 and awaits module initialization. SDK regeneration validates without schema warnings.
 - Docker runtime now includes SQL source required by the external workspace package. CI includes frontend browser scenarios; shared configuration changes trigger all package type checks.
 - Final browser, native and hook validation and local integration remain in progress.
+
+## Completed runtime and native validation
+
+- Operations committed in 148fba7; normal type, format/lint and commit-message hooks passed.
+- Integration: 7 passing scenarios. API/SQL E2E: 2 passing scenarios. Browser: 4 passing desktop/mobile scenarios. External performance: 1 passing scenario.
+- Full build passed; OpenAPI/SDK generation validated without schema warnings. Both Compose manifests validated without starting services.
+- Linux cargo check passed offline. Association artifact generation passed with local test identifiers; generated test artifacts removed. Android/iOS signing and distribution remain environment-specific setup, not a local deployment task.
+- Restored native tracked changes from the preserved pre-sync stash after Lefthook could not restore hidden unstaged changes. Native entrypoint and platform guards match the validated implementation.
+- Pending: commit native artifacts and shared rules, then fast-forward the original template main locally.

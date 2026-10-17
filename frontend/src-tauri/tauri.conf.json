@@ -2,6 +2,13 @@
 	"$schema": "https://schema.tauri.app/config/2",
 	"app": {
 		"security": {
+			"capabilities": [
+				{
+					"identifier": "main-capability",
+					"permissions": ["core:default", "deep-link:default", "opener:default"],
+					"windows": ["main"]
+				}
+			],
 			"csp": null
 		},
 		"windows": [
@@ -16,8 +23,8 @@
 		"withGlobalTauri": true
 	},
 	"build": {
-		"beforeBuildCommand": "bun build",
-		"beforeDevCommand": "bun dev",
+		"beforeBuildCommand": "bun run build",
+		"beforeDevCommand": "bun run dev",
 		"devUrl": "http://localhost:5173",
 		"frontendDist": "../dist"
 	},
@@ -33,6 +40,13 @@
 		"targets": "all"
 	},
 	"identifier": "com.example.app",
+	"plugins": {
+		"deep-link": {
+			"desktop": {
+				"schemes": ["template"]
+			}
+		}
+	},
 	"productName": "Example",
 	"version": "1.0.0"
 }
