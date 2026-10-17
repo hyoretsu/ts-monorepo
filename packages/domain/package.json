@@ -1,0 +1,15 @@
+{
+	"name": "@template/domain",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": "./src/index.ts"
+	},
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"typescript": "^6.0.3",
+		"@hyoretsu/configs": "^1.2.33"
+	}
+}

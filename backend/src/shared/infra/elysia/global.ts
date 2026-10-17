@@ -1,10 +1,10 @@
 import "@/env";
-import { mailProviders } from "@hyoretsu/providers";
 import { timeConversion } from "@hyoretsu/utils";
 import Elysia from "elysia";
 import type { ElysiaCookie } from "elysia/cookies";
 import { ip } from "elysia-ip";
 import { Cookies } from "../../types";
+import { mailer } from "../mail";
 import { prisma } from "../sql";
 
 const isDev = process.env.NODE_ENV === "development";
@@ -17,7 +17,7 @@ export const GlobalPlugin = new Elysia({
 		cookie: Cookies,
 	})
 	.decorate({
-		mailProvider: new mailProviders[process.env.MAIL_DRIVER](),
+		mailProvider: mailer,
 		prisma,
 	})
 	.derive(() => ({

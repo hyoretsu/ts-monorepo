@@ -4,16 +4,18 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "bun build src/main.ts --target bun --packages external --outdir ./dist",
+		"build": "bun build src/main.ts src/worker.ts --target bun --packages external --outdir ./dist",
 		"check-types": "tsc --noEmit",
-		"dev": "bun --watch src/main.ts",
+		"dev": "bun run --parallel dev:api dev:worker",
 		"export": "bun ./src/generateOpenApi.ts",
-		"start": "NODE_ENV=production bun dist/main.js"
+		"start": "NODE_ENV=production bun dist/main.js",
+		"dev:api": "bun --watch src/main.ts",
+		"dev:worker": "bun --watch src/worker.ts",
+		"start:worker": "NODE_ENV=production bun dist/worker.js"
 	},
 	"dependencies": {
 		"@elysiajs/openapi": "^1.4.15",
 		"@elysiajs/static": "^1.4.10",
-		"@hyoretsu/providers": "^1.5.5",
 		"@hyoretsu/utils": "^1.18.1",
 		"@react-email/components": "^1.0.12",
 		"@sinclair/typebox": "^0.34.49",
@@ -28,7 +30,9 @@
 		"permix": "^3.8.1",
 		"react": "^19.2.7",
 		"react-dom": "^19.2.7",
-		"sql": "workspace:*"
+		"sql": "workspace:*",
+		"amqplib": "^0.10.9",
+		"@template/domain": "workspace:*"
 	},
 	"devDependencies": {
 		"@elysiajs/cors": "^1.4.2",
@@ -38,6 +42,7 @@
 		"@types/node": "^25.9.1",
 		"@types/react": "^19.2.16",
 		"@types/react-dom": "^19.2.3",
-		"typescript": "^6.0.3"
+		"typescript": "^6.0.3",
+		"@types/amqplib": "^0.10.8"
 	}
 }

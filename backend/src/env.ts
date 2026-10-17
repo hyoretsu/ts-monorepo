@@ -1,5 +1,4 @@
 import path from "node:path";
-import { MailProvidersEnum } from "@hyoretsu/providers";
 import { Value } from "@sinclair/typebox/value";
 import { t, type UnwrapSchema } from "elysia";
 import { NodeEnv } from "@/shared/types";
@@ -19,30 +18,32 @@ export const envSchema = t.Object({
 		default: "http://localhost:3000",
 		format: "uri",
 	}),
-	BETTER_AUTH_SECRETS: t.String({ default: "1:secret" }),
+	BETTER_AUTH_SECRETS: t.String({ default: "1:local-template-development-secret-change-before-production" }),
 	BETTER_AUTH_URL: t.String({ default: `${apiUrl}` }),
 	CORS_WHITELIST: t.String({ default: "*" }),
 	DATABASE_TEST_URL: t.Optional(
 		t.String({
-			default: "postgresql://postgres:password@localhost:5432/vivendo_de_bet_test",
+			default: "postgresql://postgres:password@localhost:5432/template_test",
 			format: "uri",
 		}),
 	),
 	DATABASE_URL: t.String({
-		default: "postgresql://postgres:password@localhost:5432/vivendo_de_bet",
+		default: "postgresql://postgres:password@localhost:5432/template",
 		format: "uri",
 	}),
-	MAIL_DRIVER: t.Enum(MailProvidersEnum),
-	MAIL_HOST: t.String(),
-	MAIL_PASS: t.String(),
-	MAIL_PORT: t.String(),
-	MAIL_USER: t.String(),
+	MAIL_DRIVER: t.Literal("nodemailer", { default: "nodemailer" }),
+	MAIL_HOST: t.String({ default: "" }),
+	MAIL_PASS: t.String({ default: "" }),
+	MAIL_PORT: t.String({ default: "" }),
+	MAIL_USER: t.String({ default: "" }),
 	NODE_ENV: t.Optional(
 		t.Enum(NodeEnv, {
-			default: NodeEnv.Production,
+			default: NodeEnv.Development,
 		}),
 	),
 	PORT: t.Optional(t.Numeric({ default: defaultPort })),
+	RABBITMQ_URL: t.String({ default: "amqp://guest:guest@127.0.0.1:5672" }),
+	REDIS_URL: t.String({ default: "redis://127.0.0.1:6379" }),
 	RESEND_API_KEY: t.Optional(t.String()),
 	S3_ACCESS_KEY_ID: t.Optional(t.String()),
 	S3_BUCKET: t.Optional(t.String()),
@@ -52,6 +53,7 @@ export const envSchema = t.Object({
 		}),
 	),
 	S3_SECRET_ACCESS_KEY: t.Optional(t.String()),
+	SERVICE_NAMESPACE: t.Optional(t.String()),
 	STATIC_DIR: t.Optional(
 		t.String({
 			default: path.resolve(__dirname, "..", "static"),
@@ -65,4 +67,4 @@ declare global {
 	}
 }
 
-Value.Default(envSchema, process.env);
+Object.assign(process.env, Value.Default(envSchema, process.env));

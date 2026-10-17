@@ -14,6 +14,7 @@ export const OpenAPI = new Elysia().use(
 				version: meta.version ?? "0.0.0",
 			},
 		},
+		exclude: { paths: [/^\/auth\//, /^\/static\//] },
 		path: docsPath,
 	}),
 );

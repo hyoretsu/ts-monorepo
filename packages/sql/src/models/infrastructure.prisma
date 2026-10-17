@@ -1,0 +1,27 @@
+model Example {
+ id String @id @default(uuid())
+ userId String
+ name String
+ processedAt DateTime?
+ createdAt DateTime @default(now())
+ @@index([userId, createdAt, id])
+}
+model OutboxEvent {
+ id String @id @default(uuid())
+ type String
+ userId String
+ aggregateId String
+ payload Json
+ createdAt DateTime @default(now())
+ availableAt DateTime @default(now())
+ leaseUntil DateTime?
+ leaseToken String?
+ publishedAt DateTime?
+ @@index([publishedAt, availableAt, leaseUntil])
+}
+model ProcessedMessage {
+ consumer String
+ eventId String
+ processedAt DateTime @default(now())
+ @@id([consumer, eventId])
+}

@@ -1,27 +1,21 @@
+import { PrismaOutbox } from "@/shared/infra/outbox/PrismaOutbox";
+import type { PrismaInstance } from "@/shared/infra/sql";
 import type { KernelUnitOfWork, Repositories } from "@/shared/repositories";
 import type { TxClient } from "@/shared/repositories/UnitOfWork";
-
-/** Builds the kernel repository set bound to a Prisma client or transaction client. */
 export function buildPrismaRepositories(db: TxClient): Repositories {
-	void db;
-	return {};
+	return { db, outbox: new PrismaOutbox(db) };
 }
-
-/**
- * Prisma-backed Unit of Work. `run` opens an interactive transaction and rebuilds the
- * repo set over the transaction client so every write inside the callback is atomic.
- * `prisma` here is the extended client; its `$transaction` hands a tx client to the
- * callback (typed via TxClient).
- */
-export function createPrismaUnitOfWork(prisma: TxClient): KernelUnitOfWork {
+export function createPrismaUnitOfWork(prisma: PrismaInstance): KernelUnitOfWork {
 	return {
 		repos: buildPrismaRepositories(prisma),
-		run<T>(fn: (ctx: Repositories) => Promise<T>): Promise<T> {
-			// Only the full client exposes $transaction; a nested tx client would already be
-			// inside one, so callers must pass the root client here.
-			return (prisma as Extract<TxClient, { $transaction: unknown }>).$transaction(tx =>
-				fn(buildPrismaRepositories(tx)),
+		async run(fn) {
+			const effects: Array<() => Promise<void>> = [];
+			const value = await prisma.$transaction(tx =>
+				fn(buildPrismaRepositories(tx), effect => effects.push(effect)),
 			);
+			// A failed post-commit cache effect must not report an already committed write as failed.
+			await Promise.allSettled(effects.map(effect => effect()));
+			return value;
 		},
 	};
 }
