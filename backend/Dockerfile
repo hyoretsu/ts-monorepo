@@ -8,8 +8,9 @@ COPY package.json bun.lock ./
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
 COPY packages/sql/package.json packages/sql/package.json
+COPY packages/domain/package.json packages/domain/package.json
 
-RUN bun i --frozen-lockfile --linker=isolated
+RUN bun i --frozen-lockfile --linker=isolated --ignore-scripts
 
 FROM deps AS build
 
@@ -20,7 +21,7 @@ ENV NODE_ENV=${NODE_ENV}
 
 COPY . .
 
-RUN --mount=type=secret,id=DATABASE_URL DATABASE_URL="$(cat /run/secrets/DATABASE_URL)" bunx turbo -F backend build
+RUN bunx turbo -F backend build
 
 FROM oven/bun:1.3.12 AS runtime
 
@@ -34,6 +35,8 @@ COPY --from=build /app/backend/package.json /app/backend/tsconfig.json ./backend
 COPY --from=build /app/packages/sql/package.json ./packages/sql/
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/packages/sql/out ./packages/sql/out
+COPY --from=build /app/packages/sql/src ./packages/sql/src
+COPY --from=build /app/packages/domain ./packages/domain
 
 WORKDIR /app/backend
 

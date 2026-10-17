@@ -1,0 +1,16 @@
+name: template-production
+x-runtime: &runtime
+  env_file: .env
+  restart: unless-stopped
+services:
+  api:
+    <<: *runtime
+    image: ${BACKEND_IMAGE:?Set BACKEND_IMAGE}
+    ports: ['127.0.0.1:3333:3333']
+  worker:
+    <<: *runtime
+    image: ${WORKER_IMAGE:?Set WORKER_IMAGE}
+  frontend:
+    image: ${FRONTEND_IMAGE:?Set FRONTEND_IMAGE}
+    restart: unless-stopped
+    ports: ['127.0.0.1:3000:3000']

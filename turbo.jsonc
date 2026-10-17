@@ -3,13 +3,13 @@
 	"tasks": {
 		"build": {
 			"dependsOn": ["^export", "generate"],
-			"inputs": ["src/**", "!src/**/generated/**"],
+			"inputs": ["$TURBO_DEFAULT$", "!src/**/generated/**"],
 			"outputLogs": "new-only",
 			"outputs": ["build/**", "dist/**", "out/**", ".next/**", "!.next/cache/**"]
 		},
 		"check-types": {
 			"dependsOn": ["^export", "generate"],
-			"inputs": ["src/**", "tsconfig*.json"],
+			"inputs": ["$TURBO_DEFAULT$", "tsconfig*.json"],
 			"outputLogs": "new-only"
 		},
 		"dev": {
@@ -20,20 +20,20 @@
 		"export": {
 			"dependsOn": ["^export", "generate"],
 			"env": ["DATABASE_URL"],
-			"inputs": ["src/**", "!src/**/generated/**"],
+			"inputs": ["$TURBO_DEFAULT$", "!src/**/generated/**"],
 			"outputLogs": "new-only",
 			"outputs": ["out/**"]
 		},
 		"frontend#generate": {
 			"dependsOn": ["^export"],
-			"inputs": ["kubb.config.ts"],
+			"inputs": ["kubb.config.ts", "../backend/out/openapi.json"],
 			"outputLogs": "new-only",
 			"outputs": ["src/lib/api/generated/**"]
 		},
 		"generate": {
 			"dependsOn": ["^export"],
 			"env": ["DATABASE_URL"],
-			"inputs": ["src/**", "!src/generated/**"],
+			"inputs": ["$TURBO_DEFAULT$", "!src/generated/**"],
 			"outputLogs": "new-only",
 			"outputs": ["src/generated/**"]
 		},
@@ -43,18 +43,15 @@
 			"outputLogs": "new-only"
 		},
 		"test": {
-			"dependsOn": ["test:e2e", "test:unit"]
+			"dependsOn": ["test:integration", "test:e2e"]
 		},
 		"test:e2e": {
 			"cache": false,
-			"dependsOn": ["^export"],
-			"env": ["DATABASE_TEST_URL", "DATABASE_URL"],
-			"inputs": ["**/*.e2e.test.ts"]
+			"dependsOn": ["^export"]
 		},
-		"test:unit": {
-			"dependsOn": ["^export"],
-			"inputs": ["**/*.test.ts", "!**/*.e2e.test.ts"],
-			"outputLogs": "new-only"
+		"test:integration": {
+			"cache": false,
+			"dependsOn": ["^export"]
 		}
 	}
 }

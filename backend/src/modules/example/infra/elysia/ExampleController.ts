@@ -14,7 +14,7 @@ export const ExampleController = new Elysia({ detail: { tags: ["Example"] }, pre
 	})
 	.post(
 		"/",
-		({ body, prisma, userId }) =>
+		async ({ body, prisma, userId }) =>
 			new CreateExample(createPrismaUnitOfWork(prisma)).execute({ ...body, userId }),
 		{ body: CreateExampleBody, response: { 200: CreateExampleReturn, 401: t.Object({ error: t.String() }) } },
 	)

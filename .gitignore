@@ -51,3 +51,11 @@ next-env.d.ts
 
 # TypeScript
 *.tsbuildinfo
+
+# Native and browser build artifacts
+frontend/src-tauri/target/
+frontend/src-tauri/gen/
+frontend/test-results/
+frontend/playwright-report/
+frontend/public/.well-known/
+frontend/src-tauri/tauri.links.conf.json

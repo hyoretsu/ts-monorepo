@@ -15,12 +15,12 @@ export function ExampleCard() {
 	const { t } = useTranslation();
 	const [name, setName] = useState("");
 	const [error, setError] = useState("");
-	const listing = useInfiniteQuery({
+	const listing = useInfiniteQuery<ExamplePage>({
 		enabled: !!user,
 		getNextPageParam: page => page.nextCursor,
 		initialPageParam: null as string | null,
 		queryFn: ({ pageParam }) =>
-			exampleRequest<ExamplePage>(pageParam ? `?cursor=${encodeURIComponent(pageParam)}` : ""),
+			exampleRequest<ExamplePage>(pageParam ? `?cursor=${encodeURIComponent(String(pageParam))}` : ""),
 		queryKey: queryKeys.examples(user?.id ?? "signed-out"),
 		refetchInterval: query =>
 			query.state.data?.pages.some(page => page.items.some(item => !item.processedAt)) ? 1000 : false,

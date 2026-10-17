@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - master
   workflow_dispatch:
 
 jobs:
@@ -11,7 +12,7 @@ jobs:
     name: Detect affected
     runs-on: ubuntu-latest
     outputs:
-      # {"build":["backend","frontend",...]} — only packages with a build script are included.
+      # {"build":["backend","frontend",...]} - only packages with a build script are included.
       # The web (GHCR) job fans out over this list; the Tauri jobs gate on whether
       # "frontend" is in it. A push that touches neither builds nothing.
       # An empty base-sha (workflow_dispatch / first push) plans every service.
@@ -65,6 +66,23 @@ jobs:
           build-args: ${{ matrix.build_args }}
           secrets: ${{ matrix.service == 'backend' && format('DATABASE_URL={0}', secrets.DATABASE_URL) || '' }}
           cache-scope: ${{ matrix.service }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+  worker:
+    name: Build and publish worker image
+    needs: detect
+    if: contains(fromJSON(needs.detect.outputs.tasks).build, 'backend')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hyoretsu/gh-actions/ghcr@main
+        with:
+          image: ghcr.io/${{ github.repository }}_worker
+          dockerfile: backend/Dockerfile.worker
+          cache-scope: worker
           password: ${{ secrets.GITHUB_TOKEN }}
 
   desktop:
@@ -126,7 +144,7 @@ jobs:
           name: Template App v${{ steps.build.outputs.version }}
           draft: false
           prerelease: false
-          # AAB goes to Play, not the release — only attach the signed APK(s).
+          # AAB goes to Play, not the release - only attach the signed APK(s).
           files: ${{ steps.build.outputs.apk-glob }}
 
       # Store uploads consume the single build above; add one step per store.

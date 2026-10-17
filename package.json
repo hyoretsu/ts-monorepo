@@ -18,9 +18,9 @@
 		"format:eslint": "bunx eslint --quiet --fix",
 		"prepare": "bun run ./prepare.ts || true",
 		"start": "turbo start",
-		"test": "turbo test",
-		"test:e2e": "turbo test:e2e",
-		"test:unit": "turbo test:unit"
+		"test": "bun run test:integration && bun run test:e2e",
+		"test:e2e": "bun scripts/test-runner.ts backend e2e && bun scripts/test-runner.ts sql e2e",
+		"test:integration": "bun scripts/test-runner.ts backend integration && bun scripts/test-runner.ts sql integration"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.16",

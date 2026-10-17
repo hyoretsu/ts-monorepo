@@ -13,7 +13,9 @@
 		"migrate:deploy": "prisma migrate deploy",
 		"migrate:dev": "prisma migrate dev && bun run export",
 		"migrate:reset": "prisma migrate reset",
-		"seed": "prisma db seed"
+		"seed": "prisma db seed",
+		"test:integration": "bun ../../scripts/test-runner.ts sql integration",
+		"test:e2e": "bun ../../scripts/test-runner.ts sql e2e"
 	},
 	"dependencies": {
 		"@prisma/adapter-pg": "^7.8.0",
