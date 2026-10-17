@@ -1,2 +1,4 @@
 export { type AuthState, useAuthStore } from "./auth";
-export { showAlert, showConfirm, useDialogStore } from "./dialog";
+export { showAlert, useDialogStore } from "./dialog";
+
+export { showToast } from "./notifications";

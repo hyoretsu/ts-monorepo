@@ -36,6 +36,37 @@
 				"secondParagraph": "When a real API exists, keep <apiPath>src/lib/api</apiPath> for generated backend hooks and call those hooks from the route or component that owns the screen.",
 				"title": "Use this pattern"
 			}
+		},
+		"ui": {
+			"close": "Close",
+			"confirm": "Confirm",
+			"confirmAction": "Confirm action?",
+			"create": "Create",
+			"datePlaceholder": "MM/DD/YYYY",
+			"dateRangePlaceholder": "MM/DD/YYYY - MM/DD/YYYY",
+			"done": "Completed.",
+			"exampleName": "Name",
+			"examplePlaceholder": "Example record",
+			"exampleTitle": "Background processing example",
+			"failed": "Operation failed.",
+			"loadMore": "Load more",
+			"noResults": "No results",
+			"notice": "Notice",
+			"numericPlaceholder": "1,000",
+			"ok": "OK",
+			"password": "New password",
+			"passwordPlaceholder": "At least 8 characters",
+			"processed": "Processed",
+			"processing": "Processing",
+			"register": "Create account",
+			"required": "Complete all required fields.",
+			"resetPassword": "Reset password",
+			"save": "Save",
+			"saved": "Saved.",
+			"search": "Search options",
+			"select": "Select an option",
+			"signInRequired": "Sign in to create examples.",
+			"verifyEmail": "Verify email"
 		}
 	}
 }

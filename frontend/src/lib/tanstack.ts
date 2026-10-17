@@ -1,3 +1,1 @@
-import { tanstackClient } from "@hyoretsu/kubb/client";
-
-export const reactQueryClient = tanstackClient();
+export { reactQueryClient } from "./query-cache";

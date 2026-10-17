@@ -1,33 +1,23 @@
-import { Input } from "baseui/input";
-import type { ComponentProps, ComponentType } from "react";
 import { NumericFormat, type NumericFormatProps } from "react-number-format";
-
-type NumericInputProps = NumericFormatProps<ComponentProps<typeof Input>>;
-
-export function NumericInput({
-	allowLeadingZeros,
-	decimalScale,
-	decimalSeparator,
-	onValueChange,
-	prefix,
-	suffix,
-	thousandSeparator,
-	value,
-	...inputProps
-}: NumericInputProps) {
+import { useDebouncedInput } from "@/hooks/use-debounced-input";
+import { Input } from "./Input";
+export function NumericInput({ value, onValueChange, ...props }: NumericFormatProps) {
+	const [local, setLocal, flush] = useDebouncedInput(String(value ?? ""), () => undefined);
 	return (
-		// @ts-expect-error — ARIA attribute types in react-number-format are narrower than React's
 		<NumericFormat
-			allowLeadingZeros={allowLeadingZeros}
-			customInput={Input as ComponentType<object>}
-			decimalScale={decimalScale}
-			decimalSeparator={decimalSeparator}
-			onValueChange={onValueChange}
-			prefix={prefix}
-			suffix={suffix}
-			thousandSeparator={thousandSeparator}
-			value={value}
-			{...inputProps}
+			{...props}
+			customInput={Input}
+			inputMode="decimal"
+			onBlur={event => {
+				flush();
+				props.onBlur?.(event);
+			}}
+			onValueChange={(values, source) => {
+				setLocal(values.formattedValue);
+				onValueChange?.(values, source);
+			}}
+			type="text"
+			value={local}
 		/>
 	);
 }

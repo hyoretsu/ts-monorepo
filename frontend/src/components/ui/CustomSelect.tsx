@@ -1,154 +1,121 @@
-import { useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useEffect, useId, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { LuChevronDown } from "react-icons/lu";
+import { useDebouncedInput } from "@/hooks/use-debounced-input";
 import { cn } from "@/lib/utils";
-
+import { Input } from "./Input";
+import { inputControlClassName } from "./input-styles";
+import { Popover, PopoverContent, PopoverTrigger } from "./Popover";
+import { ScrollArea } from "./ScrollArea";
 export interface SelectOption {
 	label: string;
 	value: string;
+	special?: boolean;
+	disabled?: boolean;
 }
-
 export interface SelectGroup {
 	label: string;
 	options: SelectOption[];
 }
-
-interface CustomSelectProps {
-	className?: string;
-	groups?: SelectGroup[];
-	onChange: (value: string) => void;
+export function CustomSelect({
+	options = [],
+	groups,
+	value,
+	onChange,
+	searchable = false,
+	sortOptions = true,
+	placeholder,
+	className,
+	disabled,
+	name,
+}: {
 	options?: SelectOption[];
+	groups?: SelectGroup[];
 	value: string;
-}
-
-interface DropdownPos {
-	left: number;
-	top: number;
-	width: number;
-}
-
-export function CustomSelect({ className, groups, onChange, options, value }: CustomSelectProps) {
+	onChange: (value: string) => void;
+	searchable?: boolean;
+	sortOptions?: boolean;
+	placeholder?: string;
+	className?: string;
+	disabled?: boolean;
+	name?: string;
+}) {
 	const [open, setOpen] = useState(false);
-	const [pos, setPos] = useState<DropdownPos>({ left: 0, top: 0, width: 0 });
-	const triggerRef = useRef<HTMLButtonElement>(null);
-	const dropdownRef = useRef<HTMLDivElement>(null);
-
-	const allOptions: SelectOption[] = groups ? groups.flatMap(g => g.options) : (options ?? []);
-	const selected = allOptions.find(o => o.value === value);
-
-	function openDropdown() {
-		if (!triggerRef.current) return;
-		const rect = triggerRef.current.getBoundingClientRect();
-		setPos({ left: rect.left, top: rect.bottom + 4, width: rect.width });
-		setOpen(true);
-	}
-
-	function select(v: string) {
-		onChange(v);
-		setOpen(false);
-	}
-
+	const [search, setSearch] = useDebouncedInput("", () => undefined);
+	const id = useId();
+	const { t } = useTranslation();
+	const all = groups ? groups.flatMap(group => group.options) : options;
 	useEffect(() => {
-		if (!open) return;
-
-		function handleClick(e: MouseEvent) {
-			if (
-				!triggerRef.current?.contains(e.target as Node) &&
-				!dropdownRef.current?.contains(e.target as Node)
-			) {
-				setOpen(false);
-			}
-		}
-
-		function handleKey(e: KeyboardEvent) {
-			if (e.key === "Escape") setOpen(false);
-		}
-
-		document.addEventListener("mousedown", handleClick);
-		document.addEventListener("keydown", handleKey);
-		return () => {
-			document.removeEventListener("mousedown", handleClick);
-			document.removeEventListener("keydown", handleKey);
-		};
-	}, [open]);
-
+		const enabled = all.filter(option => !option.disabled);
+		if (!disabled && enabled.length === 1 && !enabled.some(option => option.value === value))
+			onChange(enabled[0].value);
+	}, [all, disabled, onChange, value]);
+	const regular = all.filter(
+		option => !option.special && option.label.toLocaleLowerCase().includes(search.toLocaleLowerCase()),
+	);
+	if (sortOptions) regular.sort((a, b) => a.label.localeCompare(b.label));
+	const filtered = [...all.filter(option => option.special), ...regular];
 	return (
 		<>
-			<button
-				aria-expanded={open}
-				aria-haspopup="listbox"
-				className={cn(
-					"flex h-11 w-full items-center justify-between rounded-md border border-border bg-surface px-3 text-foreground text-sm transition-colors",
-					"hover:border-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1",
-					className,
-				)}
-				onClick={openDropdown}
-				ref={triggerRef}
-				type="button"
+			<input name={name} type="hidden" value={value} />
+			<Popover
+				onOpenChange={next => {
+					setOpen(next);
+					if (!next) setSearch("");
+				}}
+				open={open}
 			>
-				<span className={cn(!selected && "text-muted-foreground")}>{selected?.label ?? "—"}</span>
-				<LuChevronDown
-					className={cn(
-						"ml-2 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-						open && "rotate-180",
-					)}
-				/>
-			</button>
-
-			{open &&
-				createPortal(
-					<div
-						className="overflow-hidden rounded-md border border-border bg-popover shadow-md"
-						onMouseDown={e => e.preventDefault()}
-						ref={dropdownRef}
-						role="listbox"
-						style={{
-							left: pos.left,
-							maxHeight: 260,
-							overflowY: "auto",
-							position: "fixed",
-							top: pos.top,
-							width: pos.width,
-							zIndex: 9999,
-						}}
+				<PopoverTrigger asChild>
+					<button
+						aria-controls={id}
+						aria-expanded={open}
+						className={cn(
+							inputControlClassName,
+							"cursor-pointer justify-between gap-2 disabled:cursor-not-allowed",
+							className,
+						)}
+						disabled={disabled}
+						role="combobox"
+						type="button"
 					>
-						{groups
-							? groups.map(group => (
-									<div key={group.label}>
-										<p className="px-3 py-1.5 font-semibold text-muted-foreground text-xs">{group.label}</p>
-										{group.options.map(opt => (
-											<button
-												className={cn(
-													"w-full px-3 py-2 text-left text-sm hover:bg-accent",
-													opt.value === value && "bg-accent/60 font-medium",
-												)}
-												key={opt.value}
-												onClick={() => select(opt.value)}
-												role="option"
-												type="button"
-											>
-												{opt.label}
-											</button>
-										))}
-									</div>
-								))
-							: options?.map(opt => (
-									<button
-										className={cn(
-											"w-full px-3 py-2 text-left text-sm hover:bg-accent",
-											opt.value === value && "bg-accent/60 font-medium",
-										)}
-										key={opt.value}
-										onClick={() => select(opt.value)}
-										role="option"
-										type="button"
-									>
-										{opt.label}
-									</button>
-								))}
-					</div>,
-					document.body,
-				)}
+						<span className="truncate">
+							{all.find(option => option.value === value)?.label ?? placeholder ?? t("ui.select")}
+						</span>
+						<LuChevronDown className="shrink-0" />
+					</button>
+				</PopoverTrigger>
+				<PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] min-w-48 p-2">
+					{searchable && (
+						<Input
+							aria-label={t("ui.search")}
+							onChange={event => setSearch(event.currentTarget.value)}
+							placeholder={t("ui.search")}
+							value={search}
+						/>
+					)}
+					<ScrollArea className="h-56 min-h-0">
+						<div className="grid gap-1 p-1" id={id} role="listbox">
+							{filtered.map(option => (
+								<button
+									aria-selected={option.value === value}
+									className="cursor-pointer rounded border border-transparent p-2 text-left text-sm hover:bg-accent focus-visible:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+									disabled={option.disabled}
+									key={option.value}
+									onClick={() => {
+										onChange(option.value);
+										setOpen(false);
+									}}
+									role="option"
+									type="button"
+								>
+									{option.label}
+								</button>
+							))}
+							{!filtered.length && <p className="p-2 text-muted-foreground">{t("ui.noResults")}</p>}
+						</div>
+					</ScrollArea>
+				</PopoverContent>
+			</Popover>
 		</>
 	);
 }

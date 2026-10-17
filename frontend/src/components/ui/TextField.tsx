@@ -1,84 +1,55 @@
-import { FormControl, type FormControlProps } from "baseui/form-control";
-import { Input, type InputProps } from "baseui/input";
+import { type ComponentProps, type ReactNode, useId } from "react";
 import { useDebouncedInput } from "@/hooks/use-debounced-input";
-
-interface TextFieldProps extends Omit<InputProps, "error" | "onChange" | "value"> {
-	caption?: FormControlProps["caption"];
-	error?: FormControlProps["error"];
-	label: FormControlProps["label"];
-	onValueChange: (value: string) => void;
-	value: string;
-}
-
+import { Input } from "./Input";
+import { RequiredMark } from "./RequiredMark";
 export function TextField({
+	value,
+	onValueChange,
+	label,
 	caption,
 	error,
-	label,
-	onBlur,
-	onValueChange,
-	overrides,
-	placeholder,
-	type = "text",
-	value,
+	id,
+	required,
 	...props
-}: TextFieldProps) {
-	const shouldDebounce = type === "text" || type === "search";
-	const [localValue, setLocalValue, flushLocalValue] = useDebouncedInput(value, onValueChange);
-	const inputValue = shouldDebounce ? localValue : value;
-
+}: Omit<ComponentProps<typeof Input>, "value" | "onChange"> & {
+	value: string;
+	onValueChange: (value: string) => void;
+	label: ReactNode;
+	caption?: ReactNode;
+	error?: ReactNode;
+}) {
+	const generatedId = useId();
+	const fieldId = id ?? generatedId;
+	const [local, setLocal, flush] = useDebouncedInput(value, onValueChange);
 	return (
-		<FormControl
-			caption={caption}
-			error={error}
-			label={label}
-			overrides={{
-				ControlContainer: { style: { marginBottom: 0 } },
-				Label: {
-					style: {
-						color: "var(--muted-foreground)",
-						fontSize: "12px",
-						fontWeight: 800,
-						letterSpacing: "0.04em",
-						textTransform: "uppercase",
-					},
-				},
-			}}
-		>
+		<div className="grid min-w-0 gap-2">
+			<label htmlFor={fieldId}>
+				<span>
+					{label} {required && <RequiredMark />}
+				</span>
+			</label>
 			<Input
-				onBlur={event => {
-					if (shouldDebounce) flushLocalValue();
-					onBlur?.(event);
-				}}
-				onChange={event => {
-					const next = event.currentTarget.value;
-					if (shouldDebounce) {
-						setLocalValue(next);
-						return;
-					}
-					onValueChange(next);
-				}}
-				overrides={{
-					...overrides,
-					InputContainer: {
-						...overrides?.InputContainer,
-						style: {
-							backgroundColor: "var(--surface-sunken)",
-							borderColor: "var(--input)",
-							borderRadius: "4px",
-						},
-					},
-					Input: {
-						...overrides?.Input,
-						style: {
-							color: "var(--foreground)",
-						},
-					},
-				}}
-				placeholder={placeholder}
-				type={type}
-				value={inputValue}
 				{...props}
+				aria-describedby={error || caption ? `${fieldId}-help` : undefined}
+				aria-invalid={!!error}
+				id={fieldId}
+				onBlur={event => {
+					flush();
+					props.onBlur?.(event);
+				}}
+				onChange={event => setLocal(event.currentTarget.value)}
+				required={required}
+				value={local}
 			/>
-		</FormControl>
+			{(error || caption) && (
+				<p
+					className={error ? "text-destructive text-sm" : "text-muted-foreground text-sm"}
+					id={`${fieldId}-help`}
+					role={error ? "alert" : undefined}
+				>
+					{error || caption}
+				</p>
+			)}
+		</div>
 	);
 }

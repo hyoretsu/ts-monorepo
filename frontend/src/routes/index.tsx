@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { AuthExampleCard } from "./components/AuthExampleCard";
+import { ExampleCard } from "./components/ExampleCard";
 import { HeroSection } from "./components/HeroSection";
 import { PatternCard } from "./components/PatternCard";
 
@@ -11,6 +12,7 @@ function IndexPage() {
 				<AuthExampleCard />
 				<PatternCard />
 			</section>
+			<ExampleCard />
 		</div>
 	);
 }

@@ -41,7 +41,3 @@ export function showAlert(message: string, title?: string): Promise<void> {
 		.show("alert", message, title)
 		.then(() => undefined);
 }
-
-export function showConfirm(message: string, title?: string, confirmLabel?: string): Promise<boolean> {
-	return useDialogStore.getState().show("confirm", message, title, confirmLabel);
-}

@@ -1,43 +1,31 @@
-import { Modal as BaseModal, ModalBody, ModalHeader, ROLE, SIZE } from "baseui/modal";
 import type { ReactNode } from "react";
-
-interface ModalProps {
+import { Dialog, DialogBody, DialogContent, DialogHeader, DialogTitle } from "./Dialog";
+export function Modal({
+	isOpen,
+	onClose,
+	title,
+	children,
+	maxWidth = "640px",
+}: {
 	isOpen: boolean;
 	onClose: () => void;
-	title?: ReactNode;
+	title: ReactNode;
 	children: ReactNode;
 	maxWidth?: string;
-}
-
-export function Modal({ children, isOpen, maxWidth = "640px", onClose, title }: ModalProps) {
+}) {
 	return (
-		<BaseModal
-			animate
-			autoFocus
-			isOpen={isOpen}
-			onClose={onClose}
-			overrides={{
-				Dialog: {
-					style: {
-						maxWidth,
-						width: "92vw",
-					},
-				},
-				DialogContainer: {
-					style: {
-						backdropFilter: "blur(4px)",
-						backgroundColor: "rgba(0,0,0,0.55)",
-					},
-				},
-				Root: {
-					style: { zIndex: 9999 },
-				},
+		<Dialog
+			onOpenChange={open => {
+				if (!open) onClose();
 			}}
-			role={ROLE.dialog}
-			size={SIZE.auto}
+			open={isOpen}
 		>
-			{title && <ModalHeader>{title}</ModalHeader>}
-			<ModalBody>{children}</ModalBody>
-		</BaseModal>
+			<DialogContent style={{ maxWidth }}>
+				<DialogHeader>
+					<DialogTitle>{title}</DialogTitle>
+				</DialogHeader>
+				<DialogBody>{children}</DialogBody>
+			</DialogContent>
+		</Dialog>
 	);
 }

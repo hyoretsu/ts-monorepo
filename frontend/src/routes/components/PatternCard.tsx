@@ -1,5 +1,5 @@
 import { Trans, useTranslation } from "react-i18next";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/Card";
 
 export function PatternCard() {
 	const { t } = useTranslation();
