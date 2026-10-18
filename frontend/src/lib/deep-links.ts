@@ -1,9 +1,10 @@
 import type { AnyRouter } from "@tanstack/react-router";
 import { isTauri } from "@tauri-apps/api/core";
+import { branding } from "./branding";
 export function parseAuthDeepLink(raw: string) {
 	try {
 		const url = new URL(raw);
-		const expected = import.meta.env.VITE_APP_URL ?? "http://localhost:5173";
+		const expected = branding.siteUrl ?? import.meta.env.VITE_APP_URL ?? "http://localhost:5173";
 		const protocol = import.meta.env.VITE_APP_SCHEME ?? "template";
 		if (url.protocol !== `${protocol}:` && url.origin !== new URL(expected).origin) return null;
 		const path = url.protocol === `${protocol}:` ? `/${url.hostname}${url.pathname}` : url.pathname;

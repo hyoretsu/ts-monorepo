@@ -1,3 +1,4 @@
+import { emailBranding } from "./branding";
 import "@/env";
 import { render } from "@react-email/components";
 import { betterAuth } from "better-auth";
@@ -22,11 +23,11 @@ export const auth = betterAuth({
 			verify: ({ hash, password }) => Bun.password.verify(password, hash, algorithm),
 		},
 		sendResetPassword: async ({ url, user }) => {
-			const link = new URL("/auth/reset-password/", process.env.APP_URL);
+			const link = new URL("/auth/reset-password/", emailBranding.siteUrl || process.env.APP_URL);
 			link.searchParams.set("token", new URL(url).searchParams.get("token") ?? "");
 			url = link.href;
 			await mailer.sendMail({
-				from: `"Template App" <${process.env.MAIL_USER}>`,
+				from: `"${emailBranding.name.replaceAll(/['"\r\n]/g, "")}" <${process.env.MAIL_USER}>`,
 				html: await render(ResetPasswordEmail({ name: user.name, url })),
 				subject: "Redefinição de senha",
 				text: `Olá, ${user.name}! Acesse o link para redefinir sua senha: ${url}. O link expira em 1 hora.`,
@@ -36,7 +37,7 @@ export const auth = betterAuth({
 	},
 	emailVerification: {
 		sendVerificationEmail: async ({ url, user }) => {
-			const link = new URL("/auth/verify-email/", process.env.APP_URL);
+			const link = new URL("/auth/verify-email/", emailBranding.siteUrl || process.env.APP_URL);
 			link.searchParams.set("token", new URL(url).searchParams.get("token") ?? "");
 			await mailer.sendMail({
 				from: process.env.MAIL_USER || "template@localhost",
@@ -52,5 +53,6 @@ export const auth = betterAuth({
 	secondaryStorage: new AuthSecondaryStorage(),
 	session: { cookieCache: { enabled: false }, storeSessionInDatabase: true },
 	trustedOrigins: process.env.CORS_WHITELIST!.split(","),
+	user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" } } },
 	verification: { storeInDatabase: true },
 });

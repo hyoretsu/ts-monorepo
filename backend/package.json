@@ -4,16 +4,17 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "bun build src/main.ts src/worker.ts --target bun --packages external --outdir ./dist",
-		"check-types": "tsc --noEmit",
-		"dev": "bun run --parallel dev:api dev:worker",
-		"export": "bun ./src/generateOpenApi.ts",
+		"build": "bun run variant:prepare && bun build src/main.ts src/worker.ts --target bun --packages external --outdir ./dist",
+		"check-types": "bun run variant:prepare && tsc --noEmit",
+		"dev": "bun run variant:prepare && bun run --parallel dev:api dev:worker",
+		"export": "bun run variant:prepare && bun ./src/generateOpenApi.ts",
 		"start": "NODE_ENV=production bun dist/main.js",
-		"dev:api": "bun --watch src/main.ts",
-		"dev:worker": "bun --watch src/worker.ts",
+		"dev:api": "bun run variant:prepare && bun --watch src/main.ts",
+		"dev:worker": "bun run variant:prepare && bun --watch src/worker.ts",
 		"start:worker": "NODE_ENV=production bun dist/worker.js",
 		"test:integration": "bun ../scripts/test-runner.ts backend integration",
-		"test:e2e": "bun ../scripts/test-runner.ts backend e2e"
+		"test:e2e": "bun ../scripts/test-runner.ts backend e2e",
+		"variant:prepare": "bun ../scripts/prepare-variant.ts"
 	},
 	"dependencies": {
 		"@elysiajs/openapi": "^1.4.15",

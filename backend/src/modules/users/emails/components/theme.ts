@@ -3,7 +3,9 @@
  * Email clients require inline styles and hex colors (no CSS
  * variables / Tailwind), so the palette is duplicated here as plain values.
  */
-export const emailColors = {
+import { emailBranding } from "../../../../shared/infra/branding";
+
+const defaultColors = {
 	background: "#f7f8fa",
 	border: "#d7dee7",
 	foreground: "#14171b",
@@ -14,4 +16,7 @@ export const emailColors = {
 	surfaceDark: "#14171b",
 } as const;
 
-export const emailFontFamily = '"Hanken Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif';
+export const emailColors = { ...defaultColors, ...emailBranding.colors };
+
+export const emailFontFamily =
+	emailBranding.fontFamily || '"Hanken Grotesk", "Segoe UI", system-ui, -apple-system, sans-serif';

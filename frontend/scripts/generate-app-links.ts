@@ -1,10 +1,12 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { branding } from "../src/lib/branding";
 
 const root = resolve(import.meta.dir, "..");
 const strict = process.argv.includes("--strict");
-const appUrl = process.env.VITE_APP_URL;
-const appId = process.env.APP_IDENTIFIER;
+const appUrl = branding.siteUrl ?? process.env.VITE_APP_URL;
+const nativeConfig = await Bun.file(resolve(root, "src-tauri/tauri.conf.json")).json();
+const appId = branding.slug ? nativeConfig.identifier : process.env.APP_IDENTIFIER;
 const teamId = process.env.APPLE_TEAM_ID;
 const fingerprints = process.env.ANDROID_SHA256_FINGERPRINTS?.split(",")
 	.map(value => value.trim())

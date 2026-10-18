@@ -1,0 +1,18 @@
+model Variant {
+    id String @id @default(uuid())
+    slug String @unique
+    name String
+    apiUrl String?
+    siteUrl String?
+    logoUrl String?
+    mobileIconUrl String?
+    fontFamily String?
+    fontUrl String?
+    themeColors Json?
+    defaultTheme String?
+    allowThemeToggle Boolean?
+    footerText String?
+    nativePackageId String?
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+}

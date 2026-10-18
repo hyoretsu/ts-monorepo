@@ -37,6 +37,10 @@
 				"title": "Use this pattern"
 			}
 		},
+		"roles": {
+			"admin": "Administrator",
+			"user": "User"
+		},
 		"ui": {
 			"close": "Close",
 			"confirm": "Confirm",
@@ -67,6 +71,13 @@
 			"select": "Select an option",
 			"signInRequired": "Sign in to create examples.",
 			"verifyEmail": "Verify email"
+		},
+		"variantErrors": {
+			"DUPLICATE_VARIANT_SLUG": "A variant with this slug already exists.",
+			"FORBIDDEN": "Administrator access is required.",
+			"INVALID_VARIANT": "Check the variant configuration.",
+			"UNAUTHENTICATED": "Sign in to continue.",
+			"VARIANT_NOT_FOUND": "Variant not found."
 		}
 	}
 }

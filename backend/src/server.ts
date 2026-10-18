@@ -1,7 +1,8 @@
 import { mkdir } from "node:fs/promises";
 import { ExampleController } from "./modules/example/infra";
+import { VariantController } from "./modules/variants/infra/elysia/VariantController";
 import { app } from "./shared/infra/elysia";
 
 await mkdir(process.env.STATIC_DIR!, { recursive: true });
 
-export const server = app.use([ExampleController]);
+export const server = app.use([ExampleController, VariantController]);

@@ -1,24 +1,29 @@
 {
 	"$schema": "https://turborepo.dev/schema.json",
+	"globalEnv": ["VARIANT"],
+	"globalPassThroughEnv": ["DATABASE_URL"],
 	"tasks": {
 		"build": {
-			"dependsOn": ["^export", "generate"],
+			"cache": false,
+			"dependsOn": ["^export", "generate", "variant:prepare"],
 			"inputs": ["$TURBO_DEFAULT$", "!src/**/generated/**"],
 			"outputLogs": "new-only",
 			"outputs": ["build/**", "dist/**", "out/**", ".next/**", "!.next/cache/**"]
 		},
 		"check-types": {
-			"dependsOn": ["^export", "generate"],
+			"cache": false,
+			"dependsOn": ["^export", "generate", "variant:prepare"],
 			"inputs": ["$TURBO_DEFAULT$", "tsconfig*.json"],
 			"outputLogs": "new-only"
 		},
 		"dev": {
 			"cache": false,
-			"dependsOn": ["^export", "generate"],
+			"dependsOn": ["^export", "generate", "variant:prepare"],
 			"persistent": true
 		},
 		"export": {
-			"dependsOn": ["^export", "generate"],
+			"cache": false,
+			"dependsOn": ["^export", "generate", "variant:prepare"],
 			"env": ["DATABASE_URL"],
 			"inputs": ["$TURBO_DEFAULT$", "!src/**/generated/**"],
 			"outputLogs": "new-only",
@@ -52,6 +57,11 @@
 		"test:integration": {
 			"cache": false,
 			"dependsOn": ["^export"]
+		},
+		"variant:prepare": {
+			"cache": false,
+			"dependsOn": ["^export"],
+			"env": ["VARIANT", "DATABASE_URL"]
 		}
 	}
 }

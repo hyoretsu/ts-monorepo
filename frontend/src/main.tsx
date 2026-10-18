@@ -9,6 +9,14 @@ import { routeTree } from "./routeTree.gen";
 import "./i18n/config";
 import "./globals.css";
 
+import { branding } from "./lib/branding";
+
+const dark =
+	branding.defaultTheme === "dark" ||
+	(branding.defaultTheme === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+document.documentElement.classList.toggle("dark", dark);
+document.documentElement.classList.toggle("light", !dark);
+
 const router = createRouter({
 	context: {
 		queryClient: reactQueryClient,

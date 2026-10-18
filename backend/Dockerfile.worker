@@ -16,12 +16,16 @@ FROM deps AS build
 
 WORKDIR /app
 
+ARG VARIANT
+ENV VARIANT=${VARIANT}
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
 
 COPY . .
 
-RUN bunx turbo -F backend build
+# Database branding can change independently of source or selection.
+ARG BRANDING_REVISION
+RUN --mount=type=secret,id=DATABASE_URL,env=DATABASE_URL bunx turbo -F backend build
 
 FROM oven/bun:1.3.12 AS runtime
 
