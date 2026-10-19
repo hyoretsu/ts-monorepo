@@ -4,8 +4,8 @@
 	"private": true,
 	"type": "module",
 	"scripts": {
-		"build": "bun run variant:prepare && vite build && tsc -b",
-		"check-types": "bun run variant:prepare && tsc --noEmit",
+		"build": "bun run variant:prepare && vite build && bun check -b",
+		"check-types": "bun run variant:prepare && bun check",
 		"dev": "bun run variant:prepare && vite --host",
 		"preview": "vite preview",
 		"start": "vite preview",

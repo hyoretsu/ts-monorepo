@@ -6,7 +6,7 @@
 		".": "./src/index.ts"
 	},
 	"scripts": {
-		"check-types": "tsc --noEmit"
+		"check-types": "bun check"
 	},
 	"devDependencies": {
 		"typescript": "^6.0.3",

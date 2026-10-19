@@ -63,7 +63,9 @@ export const envSchema = t.Object({
 
 declare global {
 	namespace NodeJS {
-		interface ProcessEnv extends UnwrapSchema<typeof envSchema> {}
+		interface ProcessEnv extends Omit<UnwrapSchema<typeof envSchema>, "NODE_ENV"> {
+			NODE_ENV?: NodeEnv;
+		}
 	}
 }
 
