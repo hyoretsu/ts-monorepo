@@ -197,24 +197,18 @@ This template includes integration and E2E only. Do not add unit tests, coverage
 
 Always implement in an isolated worktree. Record original branch, preserve unrelated staged and working changes, commit coherent increments, then integrate completed commits into the original branch without push. Prefer explicit commit paths; never include unrelated staged files. Wait and retry temporary Git locks, never remove locks owned by active processes or bypass hooks.
 
+After integrating a task into the original branch (including `main`), remove its isolated worktree with `git worktree remove <path>` before reporting completion. Verify that every intended commit was integrated and the worktree has no staged, unstaged or untracked work, and is not in use by another task or process. For cherry-picked or squashed changes, verify equivalent changes in the destination rather than relying only on ancestry. Never use `--force` or delete a directory directly to bypass these checks. If cleanup is blocked by remaining work or active use, preserve the worktree and report its path and reason. Do not remove other tasks' worktrees.
+
+Use `git worktree remove` so Git removes both the directory and its registration. If a task's directory was already deleted, inspect `git worktree prune --dry-run` before pruning stale registrations; never prune entries belonging to active or temporarily unavailable worktrees. Verify the task worktree no longer appears in `git worktree list` after cleanup. Branch deletion is separate and must never discard unintegrated commits.
+
 ## Documentation follows implementation
 
 Instructions must name real scripts, hooks, paths and components. Shared rules describe invariants; repository-specific sections describe actual stack and exceptions. Do not copy domain examples, production namespaces or nonexistent helper paths from another project. Keep business rules in docs/business-rules.md.
 
-# Template architecture
+## Project-specific engineering rules
 
-- Keep Prisma 7 + Kysely + Prismabox. Do not migrate to Prisma 8 contracts. Models live in packages/sql/src/models; version SQL migrations under packages/sql/src/migrations.
-- Keep Elysia modules, useCases, repositories and TypeBox DTOs. Compose repository writes and outbox events through the shared UnitOfWork. Kysely queries must use the transaction's $kysely client.
-- Redis, RabbitMQ and worker are active by default. Use service-namespace.ts for every key, exchange and queue, including retry/DLQ; template is production, template_dev is non-production, SERVICE_NAMESPACE overrides both. Never reuse a production namespace in development.
-- Broker delivery is at least once. Use transactional consumer receipts, idempotent handlers, bounded retries, DLQ and outbox publication confirms. Never publish a durable business event independently of its database transaction.
-- Frontend uses Radix/ShadCN and Tailwind. Add primitives through ShadCN CLI and normalize component filenames to PascalCase. No BaseUI, Styletron, guest mode, IndexedDB synchronization or runtime observability is part of this base.
-- Every modal uses Dialog with DialogBody/ScrollArea between fixed header/footer. Back closes the topmost modal; buttons/Escape/overlay consume its history step without shifting page/background scroll. Keep form body/footer inside the same form.
-- Loading another page preserves existing data, keys, container and scroll. Show incremental loading/error feedback after existing content; full skeletons belong to initial load/filter changes.
-- Use ActionGroup and DialogFooter for right-aligned, wrapping actions; compact mobile actions stay side by side when they fit.
-- CustomSelect automatically chooses the only enabled option through onChange when selection is absent or invalid. Count all options, including special options, before search filtering; preserve valid selection and never choose disabled options.
-- Dynamic CustomSelect listings are searchable; special options stay first and visible during every search.
-- Date selectors use DateField or DateRangePicker, never native date/month/week inputs or showPicker.
-- Single-line fields share inputControlClassName; related columns use FormFieldRow. Mark required fields with RequiredMark, never label optional fields redundantly. Validate submitted native values before mutation to avoid stale debounced values.
-- Pending mutations disable only overlapping records/actions. Reversible actions act immediately with toast feedback; permanent destructive actions use ConfirmActionButton with a three-second second-click confirmation.
-- Keep all user-facing copy in locale resources. Use normal hyphens in UI, documentation and tests. Do not render raw enum values.
-- Native association artifacts use configured application identifiers/domains. Never embed credentials or signing material. Generate SDK through sql export, backend export and frontend generate; never edit generated code.
+Engineering rules document how this repository must be implemented: stack choices, shared components, infrastructure conventions and technical behavior that agents must preserve. They supplement the reusable workflow and engineering conventions in AGENTS.md. Product/domain policies belong in `docs/business-rules.md` instead.
+
+Keep repository-specific engineering rules in `docs/engineering-rules.md`. When adapting this template to a new project, update that file to reflect the actual stack, paths, scripts and components; do not copy another application's rules blindly. Keep this explanation and the mandatory reference below in AGENTS.md so future agents know where to read and maintain project-specific constraints.
+
+Before implementation or review, read [docs/engineering-rules.md](docs/engineering-rules.md) and follow its applicable rules.
