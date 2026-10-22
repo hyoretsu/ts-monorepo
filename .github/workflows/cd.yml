@@ -6,6 +6,11 @@ on:
       - main
       - master
   workflow_dispatch:
+    inputs:
+      variants:
+        description: "Variants to build, comma-separated (empty = all configured variants)"
+        required: false
+        type: string
 
 jobs:
   detect:
@@ -31,8 +36,13 @@ jobs:
       - name: Resolve variants
         id: variants
         env:
+          REQUESTED_VARIANTS: ${{ inputs.variants }}
           VARIANTS: ${{ vars.VARIANTS }}
-        run: bun scripts/variant-matrix.ts
+        run: |
+          if [[ -n "${REQUESTED_VARIANTS//[[:space:]]/}" ]]; then
+            export VARIANTS="${REQUESTED_VARIANTS//,/$'\n'}"
+          fi
+          bun scripts/variant-matrix.ts
 
       - name: Compute affected services
         id: affected
