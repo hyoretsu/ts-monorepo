@@ -23,3 +23,8 @@ UI uses Radix/ShadCN and existing Tailwind tokens. Add primitives through ShadCN
 ## Native links
 
 Set VITE_APP_URL and VITE_APP_SCHEME, plus APPLE_TEAM_ID, APP_IDENTIFIER and ANDROID_SHA256_FINGERPRINTS for associated builds. `bun -F frontend links:generate --strict` writes local association artifacts and Tauri link configuration. Deploy those artifacts yourself. Unsigned local desktop builds do not require association identifiers. Never commit signing secrets.
+
+## Adding projects
+
+Before adding a workspace or changing dependency/task wiring, follow the
+[project scaffolding guide](development/project-scaffolding.md).

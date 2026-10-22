@@ -170,7 +170,7 @@ Using `result:` makes Elysia ignore the response typing, which makes Kubb genera
 
 Correct flow when adding or changing an endpoint:
 1. Change the backend (controller/DTO).
-2. `bun run export` in the backend → updates `backend/generated/openapi.json` and `generateOpenApi.ts`.
+2. `bun run export` in the backend → updates `backend/out/openapi.json` from `backend/src/generateOpenApi.ts`.
 3. `bun run generate` in the frontend → regenerates the SDK in `generated/`.
 
 If you need a hook for an endpoint that is not yet available on the production server, place it in `frontend/src/lib/api/` (outside `generated/`) and re-export it through `frontend/src/lib/api/index.ts`.
@@ -212,3 +212,10 @@ Engineering rules document how this repository must be implemented: stack choice
 Keep repository-specific engineering rules in `docs/engineering-rules.md`. When adapting this template to a new project, update that file to reflect the actual stack, paths, scripts and components; do not copy another application's rules blindly. Keep this explanation and the mandatory reference below in AGENTS.md so future agents know where to read and maintain project-specific constraints.
 
 Before implementation or review, read [docs/engineering-rules.md](docs/engineering-rules.md) and follow its applicable rules.
+
+## Development guides
+
+Before creating a workspace or changing workspace dependencies, exports, or Turbo
+tasks, read and follow [the project scaffolding guide](docs/development/project-scaffolding.md).
+Find development guides under `docs/development/` and read those applicable to the
+change. Keep guide discovery links here when adding new development guides.
