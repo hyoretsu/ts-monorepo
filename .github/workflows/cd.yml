@@ -1,242 +1,113 @@
-name: CD
+name: CD - images
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   workflow_dispatch:
     inputs:
+      target:
+        description: Images to publish
+        type: choice
+        options: [all, backend, worker, frontend]
+        default: all
       variants:
-        description: "Variants to build, comma-separated (empty = all configured variants)"
-        required: false
+        description: "Template variants, comma-separated; empty uses VARIANTS"
         type: string
+        required: false
+
+permissions:
+  contents: read
+
+# Finish the current publication before starting another on the same branch.
+# Do not cancel a run midway through updating mutable image tags.
+concurrency:
+  group: cd-images-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   detect:
-    name: Detect affected
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     outputs:
-      # {"build":["backend","frontend",...]} - only packages with a build script are included.
-      # The web (GHCR) job fans out over this list; the Tauri jobs gate on whether
-      # "frontend" is in it. A push that touches neither builds nothing.
-      # An empty base-sha (workflow_dispatch / first push) plans every service.
-      tasks: ${{ steps.affected.outputs.tasks }}
-      variants: ${{ steps.variants.outputs.variants }}
+      matrix: ${{ steps.plan.outputs.matrix }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
-          # Need history present so Turbo's --affected can diff against the base.
           fetch-depth: 0
-
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version-file: package.json
-      - name: Resolve variants
-        id: variants
+      - run: bun install --frozen-lockfile --ignore-scripts
+      - name: Compute affected packages
+        id: affected
         env:
+          BASE_SHA: ${{ github.event.before }}
+        run: echo "tasks=$(bun scripts/affected-packages.ts "$BASE_SHA" build)" >> "$GITHUB_OUTPUT"
+      - name: Plan image matrix
+        id: plan
+        env:
+          TASKS: ${{ steps.affected.outputs.tasks }}
+          TARGET: ${{ inputs.target || 'affected' }}
           REQUESTED_VARIANTS: ${{ inputs.variants }}
           VARIANTS: ${{ vars.VARIANTS }}
-        run: |
-          if [[ -n "${REQUESTED_VARIANTS//[[:space:]]/}" ]]; then
-            export VARIANTS="${REQUESTED_VARIANTS//,/$'\n'}"
-          fi
-          bun scripts/variant-matrix.ts
+        run: python .github/scripts/plan-cd.py
 
-      - name: Compute affected services
-        id: affected
-        uses: hyoretsu/gh-actions/detect-affected@main
-        with:
-          tasks: build
-          base-sha: ${{ github.event.before }}
-
-  ghcr:
-    name: Build and publish ${{ matrix.service }} image${{ matrix.variant.suffix }}
+  images:
+    name: Image / ${{ matrix.service }}${{ matrix.variant.suffix }}
     needs: detect
-    env:
-      VARIANT: ${{ matrix.variant.slug }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      CARGO_TARGET_DIR: ${{ github.workspace }}/frontend/src-tauri/target${{ matrix.variant.suffix }}
-    if: ${{ fromJSON(needs.detect.outputs.tasks).build[0] }}
+    if: needs.detect.outputs.matrix != '[]'
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
       packages: write
     strategy:
       fail-fast: false
+      max-parallel: 6
       matrix:
-        variant: ${{ fromJSON(needs.detect.outputs.variants) }}
-        service: ${{ fromJSON(needs.detect.outputs.tasks).build }}
-        include:
-          - service: backend
-            dockerfile: backend/Dockerfile
-            build_args: |
-              NODE_ENV=production
-          - service: frontend
-            dockerfile: frontend/Dockerfile
-            build_args: |
-              NODE_ENV=production
-              VITE_API_URL=${{ vars.VITE_API_URL }}
-              VITE_APP_URL=${{ vars.VITE_APP_URL }}
+        include: ${{ fromJSON(needs.detect.outputs.matrix) }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Build and publish image
-        uses: hyoretsu/gh-actions/containers@main
-        with:
-          image_suffix: ${{ matrix.service }}${{ matrix.variant.suffix }}
-          dockerfile: ${{ matrix.dockerfile }}
-          build-args: |
-            ${{ matrix.build_args }}
-            VARIANT=${{ matrix.variant.slug }}
-            BRANDING_REVISION=${{ github.run_id }}-${{ github.run_attempt }}
-          secrets: DATABASE_URL=${{ secrets.DATABASE_URL }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: ghcr.io
-
-  worker:
-    name: Build and publish worker image${{ matrix.variant.suffix }}
-    needs: detect
-    env:
-      VARIANT: ${{ matrix.variant.slug }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      CARGO_TARGET_DIR: ${{ github.workspace }}/frontend/src-tauri/target${{ matrix.variant.suffix }}
-    if: contains(fromJSON(needs.detect.outputs.tasks).build, 'backend')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: ${{ fromJSON(needs.detect.outputs.variants) }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: hyoretsu/gh-actions/containers@main
-        with:
-          image_suffix: worker${{ matrix.variant.suffix }}
-          dockerfile: backend/Dockerfile.worker
-          build-args: |
-            VARIANT=${{ matrix.variant.slug }}
-            BRANDING_REVISION=${{ github.run_id }}-${{ github.run_attempt }}
-          secrets: DATABASE_URL=${{ secrets.DATABASE_URL }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: ghcr.io
-
-  desktop:
-    name: Build & release ${{ matrix.label }} app${{ matrix.variant.suffix }}
-    needs: detect
-    env:
-      VARIANT: ${{ matrix.variant.slug }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      CARGO_TARGET_DIR: ${{ github.workspace }}/frontend/src-tauri/target${{ matrix.variant.suffix }}
-    # Only the Tauri frontend produces these apps; skip when it isn't affected.
-    if: ${{ contains(fromJSON(needs.detect.outputs.tasks).build, 'frontend') }}
-    permissions:
-      # tauri-action creates the GitHub release / uploads the installers.
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: ${{ fromJSON(needs.detect.outputs.variants) }}
-        platform: [windows-latest, ubuntu-latest, macos-latest]
-        include:
-          - platform: windows-latest
-            label: Windows
-          - platform: ubuntu-latest
-            label: Linux
-          - platform: macos-latest
-            label: macOS
-    runs-on: ${{ matrix.platform }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Build & release desktop app
-        uses: hyoretsu/gh-actions/tauri-build@main
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          tag-name: v__VERSION__${{ matrix.variant.suffix }}
-          release-name: Template App v__VERSION__${{ matrix.variant.suffix }}
-
-  android:
-    name: Build & release Android app${{ matrix.variant.suffix }}
-    needs: detect
-    env:
-      VARIANT: ${{ matrix.variant.slug }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      CARGO_TARGET_DIR: ${{ github.workspace }}/frontend/src-tauri/target${{ matrix.variant.suffix }}
-    if: ${{ contains(fromJSON(needs.detect.outputs.tasks).build, 'frontend') }}
-    runs-on: ubuntu-latest
-    permissions:
-      # softprops/action-gh-release creates the GitHub release / uploads the APK.
-      contents: write
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: ${{ fromJSON(needs.detect.outputs.variants) }}
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
-
-      - name: Build Android app (APK + AAB)
-        id: build
-        uses: hyoretsu/gh-actions/tauri-android-build@main
-        with:
-          keystore-base64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          keystore-password: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-          key-alias: ${{ secrets.ANDROID_KEY_ALIAS }}
-
-      - name: Read branded native identifier
-        id: native
-        shell: bash
-        run: echo "identifier=$(bun -e 'console.log(JSON.parse(await Bun.file("frontend/src-tauri/tauri.conf.json").text()).identifier)')" >> "$GITHUB_OUTPUT"
-
-      - name: Publish APK to GitHub release
-        uses: softprops/action-gh-release@v2
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - name: Validate production web URLs
+        if: matrix.service == 'frontend'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+          VITE_APP_URL: ${{ vars.VITE_APP_URL }}
+        run: python .github/scripts/validate-build-urls.py
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+      - name: Image metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
-          # Same tag the desktop job uses; the action creates it once and appends assets.
-          tag_name: v${{ steps.build.outputs.version }}${{ matrix.variant.suffix }}
-          name: Template App v${{ steps.build.outputs.version }}${{ matrix.variant.suffix }}
-          draft: false
-          prerelease: false
-          # AAB goes to Play, not the release - only attach the signed APK(s).
-          files: ${{ steps.build.outputs.apk-glob }}
-
-      # Store uploads consume the single build above; add one step per store.
-      - name: Upload AAB to Google Play
-        if: vars.ANDROID_PACKAGE_NAME != ''
-        uses: r0adkll/upload-google-play@v1
+          images: ghcr.io/${{ github.repository }}_${{ matrix.service }}${{ matrix.variant.suffix }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch) }}
+            type=sha,format=long
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
-          serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
-          packageName: ${{ matrix.variant.slug != '' && steps.native.outputs.identifier || vars.ANDROID_PACKAGE_NAME }}
-          releaseFiles: ${{ steps.build.outputs.aab-glob }}
-          track: production
-          status: completed
-
-  ios:
-    name: Build iOS app (stub)${{ matrix.variant.suffix }}
-    needs: detect
-    env:
-      VARIANT: ${{ matrix.variant.slug }}
-      DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      CARGO_TARGET_DIR: ${{ github.workspace }}/frontend/src-tauri/target${{ matrix.variant.suffix }}
-    if: ${{ contains(fromJSON(needs.detect.outputs.tasks).build, 'frontend') }}
-    # Stub slot: iOS shipping needs a macOS runner, an Apple Developer account and
-    # signing certs/provisioning profiles that aren't wired up yet. Kept as a
-    # placeholder so the platform is tracked; flip to a real build once those exist.
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        variant: ${{ fromJSON(needs.detect.outputs.variants) }}
-    steps:
-      - name: iOS build not configured
-        run: |
-          echo "::notice title=iOS::iOS build is a stub."
-          echo "To enable: run on macos-latest, 'bun tauri ios init', then"
-          echo "'bun tauri ios build' with APPLE signing secrets and a provisioning profile."
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish
+        id: build
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            NODE_ENV=production
+            VITE_API_URL=${{ vars.VITE_API_URL }}
+            VITE_APP_URL=${{ vars.VITE_APP_URL }}
+            VARIANT=${{ matrix.variant.slug }}
+            BRANDING_REVISION=${{ github.run_id }}-${{ github.run_attempt }}
+          secrets: DATABASE_URL=${{ secrets.DATABASE_URL }}
+          cache-from: type=gha,scope=${{ matrix.service }}${{ matrix.variant.suffix }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}${{ matrix.variant.suffix }}
+      - name: Publication summary
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}_${{ matrix.service }}${{ matrix.variant.suffix }}
+          DIGEST: ${{ steps.build.outputs.digest }}
+        run: printf 'Published `%s@%s` from `%s`\n' "$IMAGE" "$DIGEST" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

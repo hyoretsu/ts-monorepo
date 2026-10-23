@@ -6,6 +6,7 @@
 		"build": {
 			"cache": false,
 			"dependsOn": ["^export", "generate", "variant:prepare"],
+			"env": ["VITE_API_URL", "VITE_APP_URL"],
 			"inputs": ["$TURBO_DEFAULT$", "!src/**/generated/**"],
 			"outputLogs": "new-only",
 			"outputs": ["build/**", "dist/**", "out/**", ".next/**", "!.next/cache/**"]

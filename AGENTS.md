@@ -219,3 +219,5 @@ Before creating a workspace or changing workspace dependencies, exports, or Turb
 tasks, read and follow [the project scaffolding guide](docs/development/project-scaffolding.md).
 Find development guides under `docs/development/` and read those applicable to the
 change. Keep guide discovery links here when adding new development guides.
+
+CD setup and release operations: [continuous delivery guide](docs/development/cd.md).

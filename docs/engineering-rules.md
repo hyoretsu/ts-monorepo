@@ -19,3 +19,10 @@ Read before implementation or review. These rules supplement [AGENTS.md](../AGEN
 - Pending mutations disable only overlapping records/actions. Reversible actions act immediately with toast feedback; permanent destructive actions use ConfirmActionButton with a three-second second-click confirmation.
 - Keep all user-facing copy in locale resources. Use normal hyphens in UI, documentation and tests. Do not render raw enum values.
 - Native association artifacts use configured application identifiers/domains. Never embed credentials or signing material. Generate SDK through sql export, backend export and frontend generate; never edit generated code.
+
+## Continuous delivery
+
+See [CD configuration and release guide](development/cd.md) for image matrices,
+version-tagged native releases, iOS signing and explicit Google Play promotion.
+Keep app publication downstream of all selected platform builds and preserve
+variant isolation in the template.
