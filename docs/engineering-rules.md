@@ -26,3 +26,12 @@ See [CD configuration and release guide](development/cd.md) for image matrices,
 version-tagged native releases, iOS signing and explicit Google Play promotion.
 Keep app publication downstream of all selected platform builds and preserve
 variant isolation in the template.
+
+## Formatting and linting
+
+Bun 1.4.4+ owns formatting through the root `bunfig.toml` `[fmt]` section. Use
+`bun run format` to write formatting and `bun run format:check` to check it.
+`bun run lint` checks remaining Biome/ESLint rules and Biome sorting assists;
+`bun run lint:fix` applies their fixes and formats last. Keep Biome formatting,
+import organization and class sorting disabled, including in nested presets,
+so they cannot conflict with Bun. Preserve other lint rules and validation gates.

@@ -1,46 +1,37 @@
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { lintStagedConfig } from "@hyoretsu/configs/lint-staged";
-import root from "./package.json" with { type: "json" };
+import { relative } from "node:path";
+import { cwd } from "node:process";
 
-// Tasks to run pre-commit for a workspace whose files were staged. A package only
-// runs the ones it actually defines in its package.json `scripts`.
-const PRECOMMIT_TASKS = ["check-types", "test:unit"];
+const isIgnoredFile = filename => {
+	const path = relative(cwd(), filename).replaceAll("\\", "/");
+	return (
+		path.startsWith(".agents/") ||
+		path.startsWith(".claude/") ||
+		path.startsWith("frontend/src-tauri/gen/") ||
+		path === "skills-lock.json" ||
+		path.endsWith(".gen.ts")
+	);
+};
 
-
-/** Expand the root `workspaces` globs to concrete package dirs (those with a package.json). */
-function workspaceDirs() {
-	const dirs = new Set<string>();
-	for (const pattern of root.workspaces ?? []) {
-		if (pattern.endsWith("/*")) {
-			const base = pattern.slice(0, -2);
-			for (const entry of readdirSync(base, { withFileTypes: true })) {
-				if (entry.isDirectory() && existsSync(`${base}/${entry.name}/package.json`)) {
-					dirs.add(`${base}/${entry.name}`);
-				}
-			}
-		} else if (existsSync(`${pattern}/package.json`)) {
-			dirs.add(pattern);
-		}
-	}
-	return [...dirs];
-}
-
-// One entry per workspace: when files under that package are staged, run its defined
-// pre-commit tasks via Turbo, filtered to that package by name.
-const workspaceChecks = {};
-for (const dir of workspaceDirs()) {
-	const pkg = JSON.parse(readFileSync(`${dir}/package.json`, "utf8"));
-
-	const tasks = PRECOMMIT_TASKS.filter(task => pkg.scripts?.[task]);
-	if (tasks.length === 0) continue;
-
-	const commands = tasks.map(task => `bun turbo run ${task} -F ${pkg.name}`);
-
-	// Function form: ignore the matched file list — Turbo runs the package task itself.
-	workspaceChecks[`${dir}/**`] = () => commands;
-}
+// lint-staged parses command strings directly; it does not invoke a shell.
+const quote = filename => {
+	if (filename.includes('"') && filename.includes("'"))
+		throw new Error("lint-staged cannot parse filenames containing both quote styles");
+	return filename.includes('"') ? `'${filename}'` : `"${filename}"`;
+};
 
 export default {
-	...lintStagedConfig({}),
-	...workspaceChecks,
+	"*": filenames => {
+		const files = filenames.filter(filename => !isIgnoredFile(filename));
+		const commands = ["bun scripts/validate-staged.ts"];
+		if (files.length === 0) return commands;
+		const paths = files.map(quote).join(" ");
+		commands.push(
+			`bunx biome check --formatter-enabled=false --diagnostic-level=error --files-ignore-unknown=true --no-errors-on-unmatched --write --unsafe ${paths}`,
+		);
+		const scripts = files.filter(filename => /\.(cjs|js|jsx|mjs|ts|tsx)$/.test(filename));
+		if (scripts.length > 0) commands.push(`bunx eslint --quiet --fix ${scripts.map(quote).join(" ")}`);
+		// Run last so lint fixes cannot leave code outside the formatter's canonical output.
+		commands.push(`bun fmt --ignore-unknown --no-error-on-unmatched-pattern ${paths}`);
+		return commands;
+	},
 };
