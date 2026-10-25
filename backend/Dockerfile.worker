@@ -1,16 +1,20 @@
 # syntax=docker/dockerfile:1.7
 
-FROM oven/bun:1.4.3 AS deps
+FROM oven/bun:1.4.4 AS deps
 
 WORKDIR /app
 
 COPY package.json bun.lock ./
+
+# Keep dependency downloads cached when workspace manifests change.
+RUN bun pm fetch
+
 COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
 COPY packages/sql/package.json packages/sql/package.json
 COPY packages/domain/package.json packages/domain/package.json
 
-RUN bun i --frozen-lockfile --linker=isolated --ignore-scripts
+RUN bun i --offline --frozen-lockfile --linker=isolated --ignore-scripts
 
 FROM deps AS build
 
@@ -27,7 +31,7 @@ COPY . .
 ARG BRANDING_REVISION
 RUN --mount=type=secret,id=DATABASE_URL,env=DATABASE_URL bunx turbo -F backend build
 
-FROM oven/bun:1.4.3 AS runtime
+FROM oven/bun:1.4.4 AS runtime
 
 WORKDIR /app
 
