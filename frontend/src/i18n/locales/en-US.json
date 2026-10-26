@@ -37,6 +37,11 @@
 				"title": "Use this pattern"
 			}
 		},
+		"notifications": {
+			"close": "Close notification",
+			"networkError": "Unable to connect. Check your connection and try again.",
+			"timeout": "The operation took too long. Please try again."
+		},
 		"roles": {
 			"admin": "Administrator",
 			"user": "User"

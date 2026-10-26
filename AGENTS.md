@@ -227,3 +227,9 @@ Find development guides under `docs/development/` and read those applicable to t
 change. Keep guide discovery links here when adding new development guides.
 
 CD setup and release operations: [continuous delivery guide](docs/development/cd.md).
+
+## Toast notifications
+
+Use Sonner through the shared `frontend/src/lib/toast.ts` facade and `frontend/src/components/ui/Sonner.tsx` renderer. Keep at most five active notifications globally; new notifications permanently dismiss the oldest, without a hidden queue. Group repeated errors and retain the latest recovery action. Never resurrect dismissed notifications when an operation completes. Loading notifications must also be dismissible without cancelling their operation.
+
+Every toast supports exactly three dismissal directions: left, right and toward its nearest vertical viewport edge. Top-positioned toasts dismiss upward; bottom-positioned toasts dismiss downward. The vertical direction follows the rendered position, never the device type. Keep toasts fixed at the top on desktop and mobile in this repository, with left/right/up dismissal; do not move them to the bottom at mobile breakpoints. Show the close button only on desktop. Keep notifications compact, respect safe areas, avoid covering modal footer actions and present actionable errors without raw request URLs or technical IDs.
