@@ -35,3 +35,12 @@ Bun 1.4.4+ owns formatting through the root `bunfig.toml` `[fmt]` section. Use
 `bun run lint:fix` applies their fixes and formats last. Keep Biome formatting,
 import organization and class sorting disabled, including in nested presets,
 so they cannot conflict with Bun. Preserve other lint rules and validation gates.
+
+## API request timeouts
+
+The shared SDK transport in `frontend/src/lib/api/client-api.ts` disables request
+timeouts by default, including mutations. Resolve timeout after merging request
+options with `options?.timeout ?? config.timeout ?? false`: an undefined timeout
+resets Ky to its 10-second default. Explicit per-request deadlines and cancellation
+remain supported. Never automatically retry mutations after transport failures:
+a missing response does not prove that the backend rolled back the operation.
