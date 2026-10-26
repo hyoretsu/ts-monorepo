@@ -1,6 +1,7 @@
 import { createRouter, RouterProvider } from "@tanstack/react-router";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { initializeVisibleViewport } from "./lib/visible-viewport";
 import "@fontsource-variable/inter/index.css";
 import { initializeDeepLinks } from "./lib/deep-links";
 import { reactQueryClient } from "./lib/tanstack";
@@ -41,3 +42,6 @@ createRoot(document.getElementById("root")!).render(
 		</Providers>
 	</StrictMode>,
 );
+
+const disposeVisibleViewport = initializeVisibleViewport();
+if (import.meta.hot) import.meta.hot.dispose(disposeVisibleViewport);

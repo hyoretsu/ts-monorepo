@@ -67,3 +67,10 @@ After updating an existing stack, recreate it with
 `docker compose up -d --remove-orphans` to replace the old prepare/API/worker/frontend
 services. This runs migrations against the configured database; remote/shared
 databases still require explicit per-instance authorization.
+
+## Mobile keyboard avoidance
+
+Shared dialogs follow the VisualViewport height and offset, keeping headers and
+footers above the software keyboard. Popovers must also fit that viewport, including
+searchable selectors. Keep option lists shrinkable inside ScrollArea. Focus recovery
+may scroll only the input's own ScrollArea, never a background page or parent modal.

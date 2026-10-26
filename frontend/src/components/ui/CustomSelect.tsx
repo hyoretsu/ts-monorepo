@@ -79,7 +79,9 @@ export function CustomSelect({
 						type="button"
 					>
 						<span className="truncate">
-							{all.find(option => option.value === value)?.label ?? placeholder ?? t("ui.select")}
+							{all.find(option => option.value === value)?.label ??
+								placeholder ??
+								t("ui.select")}
 						</span>
 						<LuChevronDown className="shrink-0" />
 					</button>
@@ -93,12 +95,12 @@ export function CustomSelect({
 							value={search}
 						/>
 					)}
-					<ScrollArea className="h-56 min-h-0">
+					<ScrollArea className="h-56 min-h-0 shrink">
 						<div className="grid gap-1 p-1" id={id} role="listbox">
 							{filtered.map(option => (
 								<button
 									aria-selected={option.value === value}
-									className="cursor-pointer rounded border border-transparent p-2 text-left text-sm hover:bg-accent focus-visible:bg-accent disabled:cursor-not-allowed disabled:opacity-50"
+									className="hover:bg-accent focus-visible:bg-accent cursor-pointer rounded border border-transparent p-2 text-left text-sm disabled:cursor-not-allowed disabled:opacity-50"
 									disabled={option.disabled}
 									key={option.value}
 									onClick={() => {
@@ -111,7 +113,9 @@ export function CustomSelect({
 									{option.label}
 								</button>
 							))}
-							{!filtered.length && <p className="p-2 text-muted-foreground">{t("ui.noResults")}</p>}
+							{!filtered.length && (
+								<p className="text-muted-foreground p-2">{t("ui.noResults")}</p>
+							)}
 						</div>
 					</ScrollArea>
 				</PopoverContent>
