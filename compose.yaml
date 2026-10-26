@@ -17,7 +17,7 @@ x-app: &app
     CORS_WHITELIST: http://localhost:5173
     MAIL_DRIVER: nodemailer
     MAIL_HOST: mail
-    MAIL_PORT: '1025'
+    MAIL_PORT: "1025"
     VITE_API_URL: http://localhost:3333
     VITE_APP_URL: http://localhost:5173
   init: true
@@ -50,35 +50,25 @@ services:
       interval: 5s
       timeout: 5s
       retries: 30
-  prepare:
+  dev:
     <<: *app
-    command: sh -ec 'bun install --frozen-lockfile && bunx turbo run export --filter sql && bun -F sql migrate:deploy'
+    entrypoint: [sh, -ec]
+    command:
+      - |
+        sh /app/scripts/dev-migration-watch.sh &
+        bun install --frozen-lockfile
+        bunx turbo run export --filter sql
+        bun -F sql migrate:deploy
+        exec bun dev
+    restart: unless-stopped
+    ports: ["3333:3333", "5173:5173"]
     depends_on:
-      postgres: {condition: service_healthy}
-  api:
-    <<: *app
-    command: bun -F backend dev:api
-    ports: ['3333:3333']
-    depends_on:
-      prepare: {condition: service_completed_successfully}
-      redis: {condition: service_healthy}
-      rabbitmq: {condition: service_healthy}
-  worker:
-    <<: *app
-    command: bun -F backend dev:worker
-    depends_on:
-      prepare: {condition: service_completed_successfully}
-      redis: {condition: service_healthy}
-      rabbitmq: {condition: service_healthy}
-  frontend:
-    <<: *app
-    command: sh -ec 'bunx turbo run export --filter backend && bun -F frontend generate && bun -F frontend dev --host 0.0.0.0'
-    ports: ['5173:5173']
-    depends_on:
-      prepare: {condition: service_completed_successfully}
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      rabbitmq: { condition: service_healthy }
   mail:
     image: axllent/mailpit:v1.27
-    ports: ['8025:8025']
+    ports: ["8025:8025"]
 volumes:
   dependencies:
   postgres:

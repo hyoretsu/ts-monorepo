@@ -44,3 +44,26 @@ options with `options?.timeout ?? config.timeout ?? false`: an undefined timeout
 resets Ky to its 10-second default. Explicit per-request deadlines and cancellation
 remain supported. Never automatically retry mutations after transport failures:
 a missing response does not prove that the backend rolled back the operation.
+
+## Development migration reload
+
+`docker compose up -d` runs API, worker and frontend together in the `dev` service.
+Startup installs dependencies, generates SQL code and deploys migrations before
+starting Turbo's development tasks. Keep the backend processes in one lifecycle
+so schema changes cannot leave a separate worker running against an old schema.
+Postgres, Redis, RabbitMQ and Mailpit remain separate services.
+
+`scripts/dev-migration-watch.sh` polls `packages/sql/src/migrations`,
+`packages/sql/src/models` and `packages/sql/prisma.config.ts` every five seconds.
+After two stable observations of changed contents, it terminates PID 1;
+`restart: unless-stopped` reruns startup and migrations. No host watcher, attached
+terminal, systemd or Docker socket mount is needed. Generated output and source-only
+changes do not trigger container restarts; Bun/Vite keep their normal hot reload.
+Migration `refs/` directories are ignored to prevent generated state from causing
+restart loops. Model changes alone do not create migrations; author and version
+the corresponding SQL migration first.
+
+After updating an existing stack, recreate it with
+`docker compose up -d --remove-orphans` to replace the old prepare/API/worker/frontend
+services. This runs migrations against the configured database; remote/shared
+databases still require explicit per-instance authorization.

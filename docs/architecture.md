@@ -2,7 +2,7 @@
 
 ## Local development
 
-Copy `.env.example` to `.env` for host development, or run `docker compose up` for the complete local stack. Compose prepares only its own PostgreSQL service. Mailpit receives development email at http://localhost:8025. Register a user through Better Auth `/auth/sign-up/email`, then sign in on the homepage.
+Copy `.env.example` to `.env` for host development, or run `docker compose up -d` for the complete local stack. Compose prepares only its own PostgreSQL service. Mailpit receives development email at http://localhost:8025. Register a user through Better Auth `/auth/sign-up/email`, then sign in on the homepage.
 
 API, worker, Redis and RabbitMQ are enabled by default. Production images use `compose.production.yaml`; supply image references, credentials, service URLs, matching SERVICE_NAMESPACE and strong Better Auth secrets yourself. No deployment or migration against external databases is part of setup.
 
@@ -28,3 +28,10 @@ Set VITE_APP_URL and VITE_APP_SCHEME, plus APPLE_TEAM_ID, APP_IDENTIFIER and AND
 
 Before adding a workspace or changing dependency/task wiring, follow the
 [project scaffolding guide](development/project-scaffolding.md).
+
+Compose runs API, worker and frontend in the `dev` container. Its internal migration
+monitor restarts all three after stable migration/model/config changes, applying
+migrations before development processes start. No attached Compose Watch process
+is needed. When upgrading from the older split-service setup, use
+`docker compose up -d --remove-orphans` to remove obsolete application containers.
+See [development migration reload](engineering-rules.md#development-migration-reload).
