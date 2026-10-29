@@ -22,7 +22,7 @@ const namespace = `template_test_${crypto.randomUUID().replaceAll("-", "")}`;
 const containers: string[] = [];
 /** Existing servers (global or local .env) are used only through ephemeral/namespaced resources; otherwise start containers. */
 const devUrl = (name: string) => process.env[name]?.trim() || undefined;
-const postgresDevUrl = devUrl("POSTGRES_DEV_URL");
+const postgresDevUrl = devUrl("DATABASE_DEV_URL") ?? devUrl("POSTGRES_DEV_URL");
 const redisDevUrl = devUrl("REDIS_DEV_URL");
 const rabbitmqDevUrl = devUrl("RABBITMQ_DEV_URL");
 if (!postgresDevUrl || !redisDevUrl || !rabbitmqDevUrl) {

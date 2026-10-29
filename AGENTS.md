@@ -77,7 +77,7 @@ Run type-check and build for affected packages before a PR or merge. Pre-commit 
 - The template has integration and E2E tests only; do not add unit tests or coverage gates.
 - Backend integration/E2E files live in `backend/tests/`; SQL scenarios in `packages/sql/tests/`, ending in `.integration.test.ts` or `.e2e.test.ts`; repo scripts in `scripts/tests/`. Browser scenarios live in `frontend/tests/browser/`; external browser performance checks in `frontend/tests/performance/`. Never name a folder `__tests__` or any `__…__` form.
 - Backend runs on Bun: `bun:test` through the disposable runner (`scripts/test-runner.ts`), never against remote/shared databases.
-- Ephemeral test services: the runner uses `POSTGRES_DEV_URL`, `REDIS_DEV_URL` and `RABBITMQ_DEV_URL` (set globally or in `.env`) when present, and starts a Docker container for each one that is missing. On an existing server it only creates and removes its own resources and never touches existing ones: Postgres gets a random uniquely named database (any database name in the URL is ignored), Redis keys and RabbitMQ queues/exchanges are namespaced per run and deleted afterwards.
+- Ephemeral test services: the runner uses `DATABASE_DEV_URL` (or `POSTGRES_DEV_URL`), `REDIS_DEV_URL` and `RABBITMQ_DEV_URL` (set globally or in `.env`) when present, and starts a Docker container for each one that is missing. On an existing server it only creates and removes its own resources and never touches existing ones: Postgres gets a random uniquely named database (any database name in the URL is ignored), Redis keys and RabbitMQ queues/exchanges are namespaced per run and deleted afterwards.
 
 ## i18n - Mandatory Rule
 
