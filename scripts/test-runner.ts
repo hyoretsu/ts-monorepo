@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { SQL } from "bun";
 
 const root = resolve(import.meta.dir, "..");
 const [target = "backend", category = "integration"] = process.argv.slice(2);
@@ -23,6 +24,14 @@ const context =
 if (!context.startsWith("unix://")) throw new Error("Only local Unix Docker sockets are allowed.");
 const namespace = `template_test_${crypto.randomUUID().replaceAll("-", "")}`;
 const containers: string[] = [];
+/** Existing server used only for a disposable database: a local *TEST_URL (.env) first, then the global POSTGRES_URL. */
+const isPostgresUrl = (value?: string) => /^postgres(ql)?:\/\//.test(value ?? "");
+const externalPostgres =
+	Object.entries(process.env).find(
+		([key, value]) => /_TEST_URL$/.test(key) && !/REDIS|BROKER/.test(key) && isPostgresUrl(value),
+	)?.[1] ?? (isPostgresUrl(process.env.POSTGRES_URL) ? process.env.POSTGRES_URL : undefined);
+let externalAdmin: SQL | undefined;
+let externalDatabase = "";
 let testProcess: ReturnType<typeof Bun.spawn> | undefined;
 let interrupted = false;
 for (const signal of ["SIGINT", "SIGTERM"] as const)
@@ -79,13 +88,25 @@ async function service(name: string, image: string, port: number, variables: str
 	return binding;
 }
 try {
-	const pg = await service(
-		"postgres",
-		"postgres:16",
-		5432,
-		["POSTGRES_PASSWORD=template", "POSTGRES_DB=template"],
-		["pg_isready", "-U", "postgres"],
-	);
+	let databaseUrl: string;
+	if (externalPostgres) {
+		externalAdmin = new SQL(externalPostgres);
+		externalDatabase = `${namespace}_db`;
+		await externalAdmin.unsafe(`CREATE DATABASE "${externalDatabase}"`);
+		const external = new URL(externalPostgres);
+		external.pathname = `/${externalDatabase}`;
+		databaseUrl = external.toString();
+		console.log("Postgres: existing server (ephemeral database only)");
+	} else {
+		const pg = await service(
+			"postgres",
+			"postgres:16",
+			5432,
+			["POSTGRES_PASSWORD=template", "POSTGRES_DB=template"],
+			["pg_isready", "-U", "postgres"],
+		);
+		databaseUrl = `postgresql://postgres:template@${pg}/template`;
+	}
 	const redis = await service("redis", "redis:7-alpine", 6379, [], ["redis-cli", "ping"]);
 	const rabbit = await service(
 		"rabbitmq",
@@ -106,7 +127,7 @@ try {
 		BETTER_AUTH_SECRETS: "1:local-disposable-test-secret-with-more-than-32-characters",
 		BETTER_AUTH_URL: "http://localhost:3333",
 		CORS_WHITELIST: "http://localhost:5173",
-		DATABASE_URL: `postgresql://postgres:template@${pg}/template`,
+		DATABASE_URL: databaseUrl,
 		NODE_ENV: "test",
 		RABBITMQ_URL: `amqp://template:template@${rabbit}`,
 		REDIS_URL: `redis://${redis}`,
@@ -135,6 +156,14 @@ try {
 	clearTimeout(timeout);
 	if (interrupted || result) process.exitCode = result || 1;
 } finally {
+	if (externalDatabase)
+		await externalAdmin
+			?.unsafe(`DROP DATABASE IF EXISTS "${externalDatabase}" WITH (FORCE)`)
+			.catch(error => {
+				console.error(error);
+				process.exitCode = 1;
+			});
+	await externalAdmin?.close().catch(() => undefined);
 	for (const name of containers.reverse())
 		try {
 			await command(["docker", "rm", "-f", "-v", name]);
