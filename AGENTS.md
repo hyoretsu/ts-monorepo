@@ -77,6 +77,7 @@ Run type-check and build for affected packages before a PR or merge. Pre-commit 
 - The template has integration and E2E tests only; do not add unit tests or coverage gates.
 - Backend integration/E2E files live in `backend/tests/`; SQL scenarios in `packages/sql/tests/`, ending in `.integration.test.ts` or `.e2e.test.ts`; repo scripts in `scripts/tests/`. Browser scenarios live in `frontend/tests/browser/`; external browser performance checks in `frontend/tests/performance/`. Never name a folder `__tests__` or any `__…__` form.
 - Backend runs on Bun: `bun:test` through the disposable runner (`scripts/test-runner.ts`), never against remote/shared databases.
+- Ephemeral test databases: if `POSTGRES_URL` is set, create the disposable databases on that server (e.g. a uniquely named database dropped afterwards) instead of starting a local Postgres, to avoid overloading the server. If it is not set, start a local Postgres (container or local instance) for the run. Never reuse or write to existing databases on that server.
 
 ## i18n - Mandatory Rule
 
