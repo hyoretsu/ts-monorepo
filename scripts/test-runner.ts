@@ -1,5 +1,5 @@
 import { resolve } from "node:path";
-import { SQL } from "bun";
+import { RedisClient, SQL } from "bun";
 
 const root = resolve(import.meta.dir, "..");
 const [target = "backend", category = "integration"] = process.argv.slice(2);
@@ -18,18 +18,38 @@ async function command(args: string[], env: Record<string, string | undefined> =
 	if (code) throw new Error(`${args[0]} failed: ${out}${err}`);
 	return out.trim();
 }
-const context =
-	process.env.DOCKER_HOST ||
-	(await command(["docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"]));
-if (!context.startsWith("unix://")) throw new Error("Only local Unix Docker sockets are allowed.");
 const namespace = `template_test_${crypto.randomUUID().replaceAll("-", "")}`;
 const containers: string[] = [];
-/** Existing server used only for a disposable database: a local *TEST_URL (.env) first, then the global POSTGRES_URL. */
-const isPostgresUrl = (value?: string) => /^postgres(ql)?:\/\//.test(value ?? "");
-const externalPostgres =
-	Object.entries(process.env).find(
-		([key, value]) => /_TEST_URL$/.test(key) && !/REDIS|BROKER/.test(key) && isPostgresUrl(value),
-	)?.[1] ?? (isPostgresUrl(process.env.POSTGRES_URL) ? process.env.POSTGRES_URL : undefined);
+/** Existing servers (global or local .env) are used only through ephemeral/namespaced resources; otherwise start containers. */
+const devUrl = (name: string) => process.env[name]?.trim() || undefined;
+const postgresDevUrl = devUrl("POSTGRES_DEV_URL");
+const redisDevUrl = devUrl("REDIS_DEV_URL");
+const rabbitmqDevUrl = devUrl("RABBITMQ_DEV_URL");
+if (!postgresDevUrl || !redisDevUrl || !rabbitmqDevUrl) {
+	const context =
+		process.env.DOCKER_HOST ||
+		(await command(["docker", "context", "inspect", "--format", "{{.Endpoints.docker.Host}}"]));
+	if (!context.startsWith("unix://")) throw new Error("Only local Unix Docker sockets are allowed.");
+}
+let externalRedis: RedisClient | undefined;
+/** Best effort through the RabbitMQ management API: removes only this run's namespaced queues/exchanges. */
+async function cleanupBroker(url: URL) {
+	const base = process.env.RABBITMQ_DEV_MANAGEMENT_URL ?? `http://${url.hostname}:15672`;
+	const headers = {
+		authorization: `Basic ${btoa(`${decodeURIComponent(url.username)}:${decodeURIComponent(url.password)}`)}`,
+	};
+	const vhost = encodeURIComponent(decodeURIComponent(url.pathname.slice(1)) || "/");
+	for (const kind of ["queues", "exchanges"]) {
+		const response = await fetch(`${base}/api/${kind}/${vhost}`, { headers });
+		if (!response.ok) return console.warn(`RabbitMQ cleanup skipped (${response.status}): ${namespace}*`);
+		for (const { name } of (await response.json()) as { name: string }[])
+			if (name.includes(namespace))
+				await fetch(`${base}/api/${kind}/${vhost}/${encodeURIComponent(name)}`, {
+					headers,
+					method: "DELETE",
+				});
+	}
+}
 let externalAdmin: SQL | undefined;
 let externalDatabase = "";
 let testProcess: ReturnType<typeof Bun.spawn> | undefined;
@@ -89,14 +109,15 @@ async function service(name: string, image: string, port: number, variables: str
 }
 try {
 	let databaseUrl: string;
-	if (externalPostgres) {
-		externalAdmin = new SQL(externalPostgres);
+	if (postgresDevUrl) {
+		const admin = new URL(postgresDevUrl);
+		admin.pathname = "/postgres";
+		externalAdmin = new SQL(admin.toString());
 		externalDatabase = `${namespace}_db`;
 		await externalAdmin.unsafe(`CREATE DATABASE "${externalDatabase}"`);
-		const external = new URL(externalPostgres);
+		const external = new URL(postgresDevUrl);
 		external.pathname = `/${externalDatabase}`;
 		databaseUrl = external.toString();
-		console.log("Postgres: existing server (ephemeral database only)");
 	} else {
 		const pg = await service(
 			"postgres",
@@ -107,30 +128,37 @@ try {
 		);
 		databaseUrl = `postgresql://postgres:template@${pg}/template`;
 	}
-	const redis = await service("redis", "redis:7-alpine", 6379, [], ["redis-cli", "ping"]);
-	const rabbit = await service(
-		"rabbitmq",
-		"rabbitmq:4-alpine",
-		5672,
-		[
-			"RABBITMQ_DEFAULT_USER=template",
-			"RABBITMQ_DEFAULT_PASS=template",
-			"RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=+S 2:2",
-			"RABBITMQ_CTL_ERL_ARGS=+S 1:1",
-		],
-		["rabbitmq-diagnostics", "-q", "ping"],
-	);
+	let redisUrl: string;
+	if (redisDevUrl) {
+		externalRedis = new RedisClient(redisDevUrl);
+		await externalRedis.send("PING", []);
+		redisUrl = redisDevUrl;
+	} else redisUrl = `redis://${await service("redis", "redis:7-alpine", 6379, [], ["redis-cli", "ping"])}`;
+	const rabbitmqUrl =
+		rabbitmqDevUrl ??
+		`amqp://template:template@${await service(
+			"rabbitmq",
+			"rabbitmq:4-alpine",
+			5672,
+			[
+				"RABBITMQ_DEFAULT_USER=template",
+				"RABBITMQ_DEFAULT_PASS=template",
+				"RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=+S 2:2",
+				"RABBITMQ_CTL_ERL_ARGS=+S 1:1",
+			],
+			["rabbitmq-diagnostics", "-q", "ping"],
+		)}`;
 	const env: Record<string, string | undefined> = { ...process.env };
 	for (const key of Object.keys(env))
-		if (/(DATABASE|REDIS|RABBITMQ|BROKER).*_(URL|SOCKET)$/.test(key)) delete env[key];
+		if (/(DATABASE|POSTGRES|REDIS|RABBITMQ|BROKER).*_(URL|SOCKET)$/.test(key)) delete env[key];
 	Object.assign(env, {
 		BETTER_AUTH_SECRETS: "1:local-disposable-test-secret-with-more-than-32-characters",
 		BETTER_AUTH_URL: "http://localhost:3333",
 		CORS_WHITELIST: "http://localhost:5173",
 		DATABASE_URL: databaseUrl,
 		NODE_ENV: "test",
-		RABBITMQ_URL: `amqp://template:template@${rabbit}`,
-		REDIS_URL: `redis://${redis}`,
+		RABBITMQ_URL: rabbitmqUrl,
+		REDIS_URL: redisUrl,
 		SERVICE_NAMESPACE: namespace,
 		TEMPLATE_DISPOSABLE_TEST_RUN: namespace,
 	});
@@ -164,6 +192,12 @@ try {
 				process.exitCode = 1;
 			});
 	await externalAdmin?.close().catch(() => undefined);
+	if (externalRedis) {
+		const keys = (await externalRedis.send("KEYS", [`${namespace}*`]).catch(() => [])) as string[];
+		if (keys.length) await externalRedis.send("DEL", keys).catch(error => console.error(error));
+		externalRedis.close();
+	}
+	if (rabbitmqDevUrl) await cleanupBroker(new URL(rabbitmqDevUrl)).catch(error => console.error(error));
 	for (const name of containers.reverse())
 		try {
 			await command(["docker", "rm", "-f", "-v", name]);
