@@ -46,6 +46,7 @@ On the user's machine add `-c commit.gpgsign=false`. Cloud sessions keep their p
 - On the user's machine the agent is only ever a co-author: never set it as author/committer, and do not pass `--author` or override `user.name`/`user.email`. Cloud sessions already run with the agent's own Git identity preconfigured; leave it as is and still add the trailer.
 - Conventional Commits (`feat`, `fix`, `refactor`, `docs`, `style`, `chore`) scoped by package (`feat(frontend)`, `fix(backend)`).
 - Atomic: one commit = one coherent, revertible change. Revert formatter edits outside your change. Prefer several small commits.
+- Always split hunks: when a file already has uncommitted changes you did not make, stage only your own hunks (`git add -p`, or `git apply --cached` with a filtered patch) and commit just those. Never bundle the user's work-in-progress into your commit; leave it unstaged.
 - Adjustments to something just delivered amend or rebase instead of adding noise.
 - Validation is hook-driven (Lefthook `lefthook.yml` pre-commit → `scripts/validate-staged.ts` plus lint-staged). Do not run format/lint/type-check as manual pre-commit steps; fix hook failures at the root cause and commit again. Never bypass with `--no-verify` or `LEFTHOOK=0`.
 
