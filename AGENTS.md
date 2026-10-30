@@ -49,6 +49,7 @@ On the user's machine add `-c commit.gpgsign=false`. Cloud sessions keep their p
 - Always split hunks: when a file already has uncommitted changes you did not make, stage only your own hunks (`git add -p`, or `git apply --cached` with a filtered patch) and commit just those. Never bundle the user's work-in-progress into your commit; leave it unstaged.
 - Adjustments to something just delivered amend or rebase instead of adding noise.
 - Validation is hook-driven (Lefthook `lefthook.yml` pre-commit → `scripts/validate-staged.ts` plus lint-staged). Do not run format/lint/type-check as manual pre-commit steps; fix hook failures at the root cause and commit again. Never bypass with `--no-verify` or `LEFTHOOK=0`.
+- Never run type-checkers by hand (`tsc`, `npx tsc`, `bunx tsc`, `bun check`, `turbo run check-types`) to "verify" before committing, nor linters or formatters outside the hook: the pre-commit hook already runs them on exactly what you staged, and every extra run competes for CPU with the hooks of other concurrent sessions, slowing all commits. Commit, let the hook report errors, fix them and commit again. Only run one yourself when the user explicitly asks, or for the pre-PR/pre-merge check below.
 
 ## Agent changes
 
