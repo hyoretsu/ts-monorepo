@@ -25,6 +25,10 @@
 		"lint:eslint": "bunx eslint --quiet",
 		"lint:fix": "bun run lint:biome --write --unsafe . && bun run lint:eslint --fix . && bun run format"
 	},
+	"overrides": {
+		"@prisma/orm-toolchain": "8.0.0-rc.22",
+		"@prisma/orm-framework": "8.0.0-rc.22"
+	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.16",
 		"@commitlint/cli": "^20.5.3",

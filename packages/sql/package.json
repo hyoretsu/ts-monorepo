@@ -4,35 +4,28 @@
 	"type": "module",
 	"exports": {
 		".": "./src/index.ts",
-		"./typebox": "./out/prismabox/barrel.ts"
+		"./typebox": "./out/typebox/barrel.ts"
 	},
 	"scripts": {
 		"check-types": "bun check",
-		"export": "prisma generate",
-		"migrate": "prisma migrate dev --create-only && npm run export",
-		"migrate:deploy": "prisma migrate deploy",
-		"migrate:dev": "prisma migrate dev && bun run export",
-		"migrate:reset": "prisma migrate reset",
-		"seed": "prisma db seed",
+		"export": "prisma contract emit && bun scripts/generate-typebox.ts out/prisma/contract.json out/typebox",
+		"migrate": "prisma migration plan",
+		"migrate:deploy": "prisma db migrate --to @contract",
+		"migrate:dev": "bun run export && prisma migration plan && prisma db migrate --to @contract",
+		"seed": "bun src/seed/index.ts",
 		"test:integration": "bun ../../scripts/test-runner.ts sql integration",
 		"test:e2e": "bun ../../scripts/test-runner.ts sql e2e"
 	},
 	"dependencies": {
-		"@prisma/adapter-pg": "^7.8.0",
-		"@prisma/client": "^7.8.0",
+		"@prisma/orm-postgres": "8.0.0-rc.22",
 		"dotenv": "^17.4.2",
 		"elysia": "^1.4.28",
-		"kysely": "^0.28.17",
-		"pg": "^8.21.0",
-		"prisma-extension-kysely": "^4.0.0"
+		"pg": "^8.21.0"
 	},
 	"devDependencies": {
 		"@hyoretsu/configs": "^1.2.33",
-		"@hyoretsu/prismabox": "^1.2.2",
 		"@types/node": "^25.9.1",
-		"@types/pg": "^8.20.0",
-		"prisma": "^7.8.0",
-		"prisma-kysely": "^3.1.1",
-		"tsup": "^8.5.1"
+		"@types/pg": "8.20.4",
+		"prisma": "8.0.0-rc.29"
 	}
 }

@@ -1,25 +1,26 @@
 import "../../../backend/tests/setup";
-import { expect, test } from "bun:test";
-import { adapter, PrismaClient, prismaExtensionKysely } from "../src";
+import { afterAll, expect, test } from "bun:test";
+import { closeDatabase, db, queryRaw, withTransaction } from "../src";
 
-test("Prisma and Kysely share transaction rollback", async () => {
-	const db = new PrismaClient({ adapter }).$extends(prismaExtensionKysely());
+afterAll(closeDatabase);
+
+test("ORM, builder and raw SQL share transaction rollback and physical connection", async () => {
 	const id = crypto.randomUUID();
-	try {
-		await expect(
-			db.$transaction(async tx => {
-				await tx.example.create({ data: { id, name: "Rollback", userId: "owner" } });
-				const row = await tx.$kysely
-					.selectFrom("Example")
-					.select("id")
-					.where("id", "=", id)
-					.executeTakeFirst();
-				expect(row?.id).toBe(id);
-				throw new Error("abort");
-			}),
-		).rejects.toThrow("abort");
-		expect(await db.example.findUnique({ where: { id } })).toBeNull();
-	} finally {
-		await db.$disconnect();
-	}
+	await expect(
+		withTransaction(async transaction => {
+			await transaction.orm.public.Example.create({ id, name: "Rollback", userId: "owner" });
+			const plan = transaction.sql.public.Example.select("id")
+				.where((fields, ops) => ops.eq(fields.id, id))
+				.build();
+			expect((await transaction.query(plan))[0]?.id).toBe(id);
+			const [connection] = await queryRaw<{ pid: number }>("select pg_backend_pid() as pid");
+			await withTransaction(async () => {
+				expect((await queryRaw<{ pid: number }>("select pg_backend_pid() as pid"))[0]?.pid).toBe(
+					connection?.pid,
+				);
+			});
+			throw new Error("abort");
+		}),
+	).rejects.toThrow("abort");
+	expect(await db.orm.public.Example.where({ id }).first()).toBeNull();
 });

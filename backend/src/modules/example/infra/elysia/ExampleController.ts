@@ -2,6 +2,7 @@ import Elysia, { t } from "elysia";
 import { auth } from "@/shared/infra/betterAuth";
 import { cache } from "@/shared/infra/cache";
 import { GlobalPlugin } from "@/shared/infra/elysia/global";
+import { and, or } from "@/shared/infra/sql";
 import { createPrismaUnitOfWork } from "@/shared/repositories/prisma";
 import { CreateExampleBody, CreateExampleReturn } from "../../dtos/CreateExample";
 import { CreateExample } from "../../useCases/CreateExample";
@@ -14,23 +15,34 @@ export const ExampleController = new Elysia({ detail: { tags: ["Example"] }, pre
 	})
 	.post(
 		"/",
-		async ({ body, prisma, userId }) =>
-			new CreateExample(createPrismaUnitOfWork(prisma)).execute({ ...body, userId }),
-		{ body: CreateExampleBody, response: { 200: CreateExampleReturn, 401: t.Object({ error: t.String() }) } },
+		async ({ body, db, userId }) =>
+			new CreateExample(createPrismaUnitOfWork(db)).execute({ ...body, userId }),
+		{
+			body: CreateExampleBody,
+			response: { 200: CreateExampleReturn, 401: t.Object({ error: t.String() }) },
+		},
 	)
 	.get(
 		"/",
-		async ({ query, userId, prisma, status }) => {
+		async ({ query, userId, db, status }) => {
 			const limit = query.limit ?? 20;
-			if (query.cursor && !(await prisma.example.findFirst({ where: { id: query.cursor, userId } })))
-				return status(400, { error: "INVALID_CURSOR" });
+			const cursor = query.cursor
+				? await db.orm.public.Example.where({ id: query.cursor, userId }).first()
+				: null;
+			if (query.cursor && !cursor) return status(400, { error: "INVALID_CURSOR" });
 			return cache.read(`examples:${userId}`, JSON.stringify(query), async () => {
-				const rows = await prisma.example.findMany({
-					orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-					take: limit + 1,
-					where: { userId },
-					...(query.cursor ? { cursor: { id: query.cursor }, skip: 1 } : {}),
-				});
+				let collection = db.orm.public.Example.where({ userId }).orderBy([
+					row => row.createdAt.desc(),
+					row => row.id.desc(),
+				]);
+				if (cursor)
+					collection = collection.where(row =>
+						or(
+							row.createdAt.lt(cursor.createdAt),
+							and(row.createdAt.eq(cursor.createdAt), row.id.lt(cursor.id)),
+						),
+					);
+				const rows = await collection.limit(limit + 1).all();
 				const items = rows.slice(0, limit).map(row => ({
 					createdAt: row.createdAt.toISOString(),
 					id: row.id,

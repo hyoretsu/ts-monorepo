@@ -38,12 +38,12 @@ export const VariantController = new Elysia({ detail: { tags: ["Variants"] }, pr
 		if (code === "VALIDATION") return status(422, { error: "INVALID_VARIANT" });
 		if (duplicateSlug(error)) return status(409, { error: "DUPLICATE_VARIANT_SLUG" });
 	})
-	.resolve(async ({ request, prisma, status }) => {
+	.resolve(async ({ request, db, status }) => {
 		const session = await auth.api.getSession({ headers: request.headers });
 		if (!session) return status(401, { error: "UNAUTHENTICATED" });
-		const user = await prisma.user.findUnique({ select: { role: true }, where: { id: session.user.id } });
+		const user = await db.orm.public.User.where({ id: session.user.id }).select("role").first();
 		if (user?.role !== "admin") return status(403, { error: "FORBIDDEN" });
-		return { variants: new ManageVariants(createPrismaUnitOfWork(prisma)) };
+		return { variants: new ManageVariants(createPrismaUnitOfWork(db)) };
 	})
 	.get("/", async ({ variants }) => (await variants.list()).map(serialize), {
 		response: { 200: t.Array(VariantReturn), ...errors },

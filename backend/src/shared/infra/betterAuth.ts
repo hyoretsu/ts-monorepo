@@ -2,19 +2,16 @@ import { emailBranding } from "./branding";
 import "@/env";
 import { render } from "@react-email/components";
 import { betterAuth } from "better-auth";
-import { prismaAdapter } from "better-auth/adapters/prisma";
 import { ResetPasswordEmail } from "@/modules/users/emails";
+import { prisma8Adapter } from "./auth-adapter";
 import { AuthSecondaryStorage } from "./auth-secondary-storage";
 import { mailer } from "./mail";
-import { prisma } from "./sql";
 
 const algorithm = "argon2id";
 
 export const auth = betterAuth({
 	basePath: "/auth",
-	database: prismaAdapter(prisma, {
-		provider: "postgresql",
-	}),
+	database: prisma8Adapter(),
 	emailAndPassword: {
 		enabled: true,
 		minPasswordLength: 8,
@@ -48,7 +45,7 @@ export const auth = betterAuth({
 		},
 	},
 	experimental: {
-		joins: true,
+		joins: false,
 	},
 	secondaryStorage: new AuthSecondaryStorage(),
 	session: { cookieCache: { enabled: false }, storeSessionInDatabase: true },

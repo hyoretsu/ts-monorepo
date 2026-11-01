@@ -163,7 +163,7 @@ try {
 		TEMPLATE_DISPOSABLE_TEST_RUN: namespace,
 	});
 	await command(
-		["bun", "x", "--no-install", "prisma", "migrate", "deploy"],
+		["bun", "x", "--no-install", "prisma", "db", "migrate", "--to", "@contract"],
 		env,
 		resolve(root, "packages/sql"),
 	);

@@ -1,4 +1,2 @@
-import { adapter, PrismaClient, prismaExtensionKysely } from "sql";
-
-export const prisma = new PrismaClient({ adapter }).$extends(prismaExtensionKysely());
-export type PrismaInstance = typeof prisma;
+export { afterCommit, closeDatabase, and, db, executeRaw, or, queryRaw, withTransaction } from "sql";
+export type { DatabaseClient } from "sql";

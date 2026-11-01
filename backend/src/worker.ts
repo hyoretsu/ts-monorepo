@@ -3,12 +3,12 @@ import { ProcessExample } from "./modules/example/useCases/ProcessExample";
 import { RabbitMqBroker } from "./shared/infra/broker/RabbitMqBroker";
 import { cache } from "./shared/infra/cache";
 import { OutboxPublisher } from "./shared/infra/outbox/PrismaOutbox";
-import { prisma } from "./shared/infra/sql";
+import { closeDatabase, db } from "./shared/infra/sql";
 import { createPrismaUnitOfWork } from "./shared/repositories/prisma";
 
 const broker = new RabbitMqBroker();
-const publisher = new OutboxPublisher(prisma, broker);
-const processor = new ProcessExample(createPrismaUnitOfWork(prisma));
+const publisher = new OutboxPublisher(db, broker);
+const processor = new ProcessExample(createPrismaUnitOfWork(db));
 let stopped = false;
 const shutdown = () => {
 	stopped = true;
@@ -31,5 +31,5 @@ try {
 } finally {
 	await broker.close();
 	await cache.close();
-	await prisma.$disconnect();
+	await closeDatabase();
 }

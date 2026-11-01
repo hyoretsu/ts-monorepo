@@ -5,7 +5,7 @@ import { server } from "../src/server";
 import { RabbitMqBroker } from "../src/shared/infra/broker/RabbitMqBroker";
 import { cache } from "../src/shared/infra/cache";
 import { OutboxPublisher } from "../src/shared/infra/outbox/PrismaOutbox";
-import { prisma } from "../src/shared/infra/sql";
+import { db } from "../src/shared/infra/sql";
 import { createPrismaUnitOfWork } from "../src/shared/repositories/prisma";
 
 await server.modules;
@@ -14,7 +14,6 @@ const broker = new RabbitMqBroker();
 afterAll(async () => {
 	await broker.close();
 	await cache.close();
-	await prisma.$disconnect();
 });
 async function request(path: string, method = "GET", body?: unknown, cookie = "") {
 	return server.handle(
@@ -32,7 +31,8 @@ async function user() {
 		name: "Test",
 		password: "local-test-password",
 	});
-	if (response.status !== 200) throw new Error(`Sign-up failed: ${response.status} ${await response.text()}`);
+	if (response.status !== 200)
+		throw new Error(`Sign-up failed: ${response.status} ${await response.text()}`);
 	return response.headers
 		.getSetCookie()
 		.map(value => value.split(";")[0])
@@ -43,14 +43,16 @@ test("authenticated creation reaches worker and remains isolated by user", async
 	const other = await user();
 	expect((await request("/example/")).status).toBe(401);
 	expect((await request("/example/", "POST", { name: "   " }, owner)).status).toBe(422);
-	const created = await (await request("/example/", "POST", { name: " E2E record " }, owner)).json();
+	const creation = await request("/example/", "POST", { name: " E2E record " }, owner);
+	const created = await creation.json();
+	if (creation.status !== 200) throw new Error(JSON.stringify(created));
 	expect(created.name).toBe("E2E record");
-	const processor = new ProcessExample(createPrismaUnitOfWork(prisma));
+	const processor = new ProcessExample(createPrismaUnitOfWork(db));
 	await broker.consume("process-example", "example.created", event => processor.execute(event));
 	await broker.consume("cache-invalidation", "example.*", event =>
 		cache.invalidate(`examples:${event.userId}`),
 	);
-	const publisher = new OutboxPublisher(prisma, broker);
+	const publisher = new OutboxPublisher(db, broker);
 	const deadline = Date.now() + 10000;
 	let processed = false;
 	while (Date.now() < deadline) {

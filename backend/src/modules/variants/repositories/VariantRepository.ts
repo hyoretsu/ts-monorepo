@@ -4,27 +4,21 @@ import type { CreateVariantBody, UpdateVariantBody } from "../dtos";
 export class VariantRepository {
 	constructor(private readonly db: TxClient) {}
 	list() {
-		return this.db.$kysely.selectFrom("Variant").selectAll().orderBy("slug").execute();
+		return this.db.orm.public.Variant.orderBy(variant => variant.slug.asc()).all();
 	}
-	find(id: string) {
-		return this.db.$kysely.selectFrom("Variant").selectAll().where("id", "=", id).executeTakeFirst();
+	async find(id: string) {
+		return (await this.db.orm.public.Variant.where({ id }).first()) ?? undefined;
 	}
 	create(data: CreateVariantBody) {
-		return this.db.$kysely
-			.insertInto("Variant")
-			.values({ ...data, id: crypto.randomUUID(), updatedAt: new Date() })
-			.returningAll()
-			.executeTakeFirstOrThrow();
+		return this.db.orm.public.Variant.create({ ...data, id: crypto.randomUUID(), updatedAt: new Date() });
 	}
-	update(id: string, data: UpdateVariantBody) {
-		return this.db.$kysely
-			.updateTable("Variant")
-			.set({ ...data, updatedAt: new Date() })
-			.where("id", "=", id)
-			.returningAll()
-			.executeTakeFirst();
+	async update(id: string, data: UpdateVariantBody) {
+		return (
+			(await this.db.orm.public.Variant.where({ id }).update({ ...data, updatedAt: new Date() })) ??
+			undefined
+		);
 	}
-	delete(id: string) {
-		return this.db.$kysely.deleteFrom("Variant").where("id", "=", id).returningAll().executeTakeFirst();
+	async delete(id: string) {
+		return (await this.db.orm.public.Variant.where({ id }).delete()) ?? undefined;
 	}
 }

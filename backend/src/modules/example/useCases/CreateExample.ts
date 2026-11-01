@@ -6,8 +6,10 @@ export class CreateExample {
 	constructor(private readonly unitOfWork: KernelUnitOfWork) {}
 	async execute(data: CreateExampleDTO) {
 		return this.unitOfWork.run(async ({ db, outbox }, afterCommit) => {
-			const example = await db.example.create({
-				data: { name: normalizeExampleName(data.name), userId: data.userId },
+			const example = await db.orm.public.Example.create({
+				id: crypto.randomUUID(),
+				name: normalizeExampleName(data.name),
+				userId: data.userId,
 			});
 			await outbox.append({
 				aggregateId: example.id,

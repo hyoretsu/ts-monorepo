@@ -1,0 +1,117 @@
+// use prisma-8
+namespace public {
+model Account {
+    id                    String    @id
+    userId                String
+    accountId             String
+    providerId            String
+    accessToken           String?
+    refreshToken          String?
+    accessTokenExpiresAt  TimestampJsDate(3)?
+    refreshTokenExpiresAt TimestampJsDate(3)?
+    scope                 String?
+    idToken               String?
+    password              String?
+    createdAt             TimestampJsDate(3)  @default(now())
+    updatedAt             TimestampJsDate(3) @onCreate(now()) @onUpdate(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, index: false)
+
+    @@index([userId], map: "account_userId_idx")
+    @@map("account")
+}
+
+model Session {
+    id        String   @id
+    userId    String
+    token     String   @unique
+    expiresAt TimestampJsDate(3)
+    ipAddress String?
+    userAgent String?
+    createdAt TimestampJsDate(3) @default(now())
+    updatedAt TimestampJsDate(3) @onCreate(now()) @onUpdate(now())
+
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: Cascade, index: false)
+
+    @@index([userId], map: "session_userId_idx")
+    @@map("session")
+}
+
+model User {
+    id            String   @id
+    name          String
+    email         String   @unique
+    emailVerified Boolean  @default(false)
+    role          String   @default("user")
+    image         String?
+    createdAt     TimestampJsDate(3) @default(now())
+    updatedAt     TimestampJsDate(3) @onCreate(now()) @onUpdate(now())
+
+    accounts Account[]
+    sessions Session[]
+
+    @@map("user")
+}
+
+model Verification {
+    id         String   @id
+    identifier String
+    value      String
+    expiresAt  TimestampJsDate(3)
+    createdAt  TimestampJsDate(3) @default(now())
+    updatedAt  TimestampJsDate(3) @onCreate(now()) @onUpdate(now())
+
+    @@index([identifier], map: "verification_identifier_idx")
+    @@map("verification")
+}
+
+model Example {
+ id String @id @onCreate(uuid(4))
+ userId String
+ name String
+ processedAt TimestampJsDate(3)?
+ createdAt TimestampJsDate(3) @default(now())
+ @@index([userId, createdAt, id], map: "Example_userId_createdAt_id_idx")
+}
+model OutboxEvent {
+ id String @id @onCreate(uuid(4))
+ type String
+ userId String
+ aggregateId String
+ payload Json
+ createdAt TimestampJsDate(3) @default(now())
+ availableAt TimestampJsDate(3) @default(now())
+ leaseUntil TimestampJsDate(3)?
+ leaseToken String?
+ publishedAt TimestampJsDate(3)?
+ @@index([publishedAt, availableAt, leaseUntil], map: "OutboxEvent_publishedAt_availableAt_leaseUntil_idx")
+}
+model ProcessedMessage {
+ consumer String
+ eventId String
+ processedAt TimestampJsDate(3) @default(now())
+ @@id([consumer, eventId])
+}
+
+model Variant {
+    @@check(expression: sql`(slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text)`, map: "Variant_slug_check")
+    @@check(expression: sql`("defaultTheme" = ANY (ARRAY['light'::text, 'dark'::text, 'system'::text]))`, map: "Variant_theme_check")
+    id String @id @onCreate(uuid(4))
+    slug String @unique
+    name String
+    apiUrl String?
+    siteUrl String?
+    logoUrl String?
+    mobileIconUrl String?
+    fontFamily String?
+    fontUrl String?
+    themeColors Json?
+    defaultTheme String?
+    allowThemeToggle Boolean?
+    footerText String?
+    nativePackageId String?
+    createdAt TimestampJsDate(3) @default(now())
+    updatedAt TimestampJsDate(3) @onCreate(now()) @onUpdate(now())
+}
+
+}

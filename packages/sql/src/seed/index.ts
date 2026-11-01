@@ -1,4 +1,5 @@
-import { PrismaClient } from "../../out/prisma/client";
-import { adapter } from "..";
+import { closeDatabase } from "..";
 
-const prisma = new PrismaClient({ adapter });
+// Add project-specific seed operations here. Invoking this file is explicit:
+// contract emission and application startup never seed a configured database.
+await closeDatabase();
