@@ -24,7 +24,8 @@ model Account {
 model Session {
     id        String   @id
     userId    String
-    token     String   @unique
+    token     String
+    @@index([token], unique: true, map: "session_token_key")
     expiresAt TimestampJsDate(3)
     ipAddress String?
     userAgent String?
@@ -40,7 +41,8 @@ model Session {
 model User {
     id            String   @id
     name          String
-    email         String   @unique
+    email         String
+    @@index([email], unique: true, map: "user_email_key")
     emailVerified Boolean  @default(false)
     role          String   @default("user")
     image         String?
@@ -78,7 +80,7 @@ model OutboxEvent {
  type String
  userId String
  aggregateId String
- payload Json
+ payload Jsonb
  createdAt TimestampJsDate(3) @default(now())
  availableAt TimestampJsDate(3) @default(now())
  leaseUntil TimestampJsDate(3)?
@@ -97,7 +99,8 @@ model Variant {
     @@check(expression: sql`(slug ~ '^[a-z0-9]+(-[a-z0-9]+)*$'::text)`, map: "Variant_slug_check")
     @@check(expression: sql`("defaultTheme" = ANY (ARRAY['light'::text, 'dark'::text, 'system'::text]))`, map: "Variant_theme_check")
     id String @id @onCreate(uuid(4))
-    slug String @unique
+    slug String
+    @@index([slug], unique: true, map: "Variant_slug_key")
     name String
     apiUrl String?
     siteUrl String?
@@ -105,7 +108,7 @@ model Variant {
     mobileIconUrl String?
     fontFamily String?
     fontUrl String?
-    themeColors Json?
+    themeColors Jsonb?
     defaultTheme String?
     allowThemeToggle Boolean?
     footerText String?

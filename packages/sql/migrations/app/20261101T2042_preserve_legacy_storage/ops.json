@@ -1,0 +1,362 @@
+[
+	{
+		"execute": [
+			{
+				"description": "drop constraint \"Variant_slug_key\"",
+				"sql": "ALTER TABLE \"public\".\"Variant\" DROP CONSTRAINT \"Variant_slug_key\""
+			}
+		],
+		"id": "dropConstraint.Variant.Variant_slug_key",
+		"label": "Drop constraint \"Variant_slug_key\" on \"Variant\"",
+		"operationClass": "widening",
+		"postcheck": [
+			{
+				"description": "verify constraint \"Variant_slug_key\" does not exist",
+				"expectation": {
+					"expects": "absent",
+					"object": "constraint \"Variant_slug_key\" on \"Variant\""
+				},
+				"params": ["Variant_slug_key", "public", "\"public\".\"Variant\""],
+				"sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\""
+			}
+		],
+		"precheck": [
+			{
+				"description": "ensure constraint \"Variant_slug_key\" exists",
+				"expectation": {
+					"expects": "present",
+					"object": "constraint \"Variant_slug_key\" on \"Variant\""
+				},
+				"params": ["Variant_slug_key", "public", "\"public\".\"Variant\""],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\""
+			}
+		],
+		"target": {
+			"details": {
+				"name": "Variant_slug_key",
+				"objectType": "unique",
+				"schema": "public",
+				"table": "Variant"
+			},
+			"id": "postgres"
+		}
+	},
+	{
+		"execute": [
+			{
+				"description": "drop constraint \"session_token_key\"",
+				"sql": "ALTER TABLE \"public\".\"session\" DROP CONSTRAINT \"session_token_key\""
+			}
+		],
+		"id": "dropConstraint.session.session_token_key",
+		"label": "Drop constraint \"session_token_key\" on \"session\"",
+		"operationClass": "widening",
+		"postcheck": [
+			{
+				"description": "verify constraint \"session_token_key\" does not exist",
+				"expectation": {
+					"expects": "absent",
+					"object": "constraint \"session_token_key\" on \"session\""
+				},
+				"params": ["session_token_key", "public", "\"public\".\"session\""],
+				"sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\""
+			}
+		],
+		"precheck": [
+			{
+				"description": "ensure constraint \"session_token_key\" exists",
+				"expectation": {
+					"expects": "present",
+					"object": "constraint \"session_token_key\" on \"session\""
+				},
+				"params": ["session_token_key", "public", "\"public\".\"session\""],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\""
+			}
+		],
+		"target": {
+			"details": {
+				"name": "session_token_key",
+				"objectType": "unique",
+				"schema": "public",
+				"table": "session"
+			},
+			"id": "postgres"
+		}
+	},
+	{
+		"execute": [
+			{
+				"description": "drop constraint \"user_email_key\"",
+				"sql": "ALTER TABLE \"public\".\"user\" DROP CONSTRAINT \"user_email_key\""
+			}
+		],
+		"id": "dropConstraint.user.user_email_key",
+		"label": "Drop constraint \"user_email_key\" on \"user\"",
+		"operationClass": "widening",
+		"postcheck": [
+			{
+				"description": "verify constraint \"user_email_key\" does not exist",
+				"expectation": {
+					"expects": "absent",
+					"object": "constraint \"user_email_key\" on \"user\""
+				},
+				"params": ["user_email_key", "public", "\"public\".\"user\""],
+				"sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\""
+			}
+		],
+		"precheck": [
+			{
+				"description": "ensure constraint \"user_email_key\" exists",
+				"expectation": {
+					"expects": "present",
+					"object": "constraint \"user_email_key\" on \"user\""
+				},
+				"params": ["user_email_key", "public", "\"public\".\"user\""],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\""
+			}
+		],
+		"target": {
+			"details": {
+				"name": "user_email_key",
+				"objectType": "unique",
+				"schema": "public",
+				"table": "user"
+			},
+			"id": "postgres"
+		}
+	},
+	{
+		"execute": [
+			{
+				"description": "alter type of \"payload\" to jsonb",
+				"meta": {
+					"convertedColumn": {
+						"by": "conversion",
+						"column": "payload",
+						"table": "OutboxEvent"
+					}
+				},
+				"sql": "ALTER TABLE \"public\".\"OutboxEvent\" ALTER COLUMN \"payload\" TYPE jsonb USING \"payload\"::jsonb"
+			}
+		],
+		"id": "alterType.OutboxEvent.payload",
+		"label": "Alter type of \"OutboxEvent\".\"payload\" to jsonb",
+		"meta": {
+			"warning": "TABLE_REWRITE"
+		},
+		"operationClass": "data",
+		"postcheck": [
+			{
+				"description": "verify column \"payload\" has type \"jsonb\"",
+				"params": ["public", "OutboxEvent", "payload", "jsonb"],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_attribute\" AS \"a\" INNER JOIN \"pg_class\" AS \"c\" ON \"c\".\"oid\" = \"a\".\"attrelid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"a\".\"attname\" = $3 AND (format_type(\"a\".\"atttypid\", \"a\".\"atttypmod\")) = $4 AND NOT (\"a\".\"attisdropped\"))) AS \"result\""
+			}
+		],
+		"precheck": [
+			{
+				"description": "ensure column \"payload\" exists",
+				"expectation": {
+					"expects": "present",
+					"object": "column \"payload\" on \"OutboxEvent\""
+				},
+				"params": ["public", "OutboxEvent", "payload"],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\""
+			}
+		],
+		"target": {
+			"details": {
+				"name": "payload",
+				"objectType": "column",
+				"schema": "public",
+				"table": "OutboxEvent"
+			},
+			"id": "postgres"
+		}
+	},
+	{
+		"execute": [
+			{
+				"description": "alter type of \"themeColors\" to jsonb",
+				"meta": {
+					"convertedColumn": {
+						"by": "conversion",
+						"column": "themeColors",
+						"table": "Variant"
+					}
+				},
+				"sql": "ALTER TABLE \"public\".\"Variant\" ALTER COLUMN \"themeColors\" TYPE jsonb USING \"themeColors\"::jsonb"
+			}
+		],
+		"id": "alterType.Variant.themeColors",
+		"label": "Alter type of \"Variant\".\"themeColors\" to jsonb",
+		"meta": {
+			"warning": "TABLE_REWRITE"
+		},
+		"operationClass": "data",
+		"postcheck": [
+			{
+				"description": "verify column \"themeColors\" has type \"jsonb\"",
+				"params": ["public", "Variant", "themeColors", "jsonb"],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_attribute\" AS \"a\" INNER JOIN \"pg_class\" AS \"c\" ON \"c\".\"oid\" = \"a\".\"attrelid\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"relnamespace\" WHERE (\"n\".\"nspname\" = $1 AND \"c\".\"relname\" = $2 AND \"a\".\"attname\" = $3 AND (format_type(\"a\".\"atttypid\", \"a\".\"atttypmod\")) = $4 AND NOT (\"a\".\"attisdropped\"))) AS \"result\""
+			}
+		],
+		"precheck": [
+			{
+				"description": "ensure column \"themeColors\" exists",
+				"expectation": {
+					"expects": "present",
+					"object": "column \"themeColors\" on \"Variant\""
+				},
+				"params": ["public", "Variant", "themeColors"],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"information_schema\".\"columns\" WHERE (\"table_schema\" = $1 AND \"table_name\" = $2 AND \"column_name\" = $3)) AS \"result\""
+			}
+		],
+		"target": {
+			"details": {
+				"name": "themeColors",
+				"objectType": "column",
+				"schema": "public",
+				"table": "Variant"
+			},
+			"id": "postgres"
+		}
+	},
+	{
+		"execute": [
+			{
+				"description": "create index \"Variant_slug_key\"",
+				"params": [],
+				"sql": "CREATE UNIQUE INDEX \"Variant_slug_key\" ON \"public\".\"Variant\" (\"slug\")"
+			}
+		],
+		"id": "index.Variant.Variant_slug_key",
+		"label": "Create index \"Variant_slug_key\" on \"Variant\"",
+		"operationClass": "additive",
+		"postcheck": [
+			{
+				"description": "verify index \"Variant_slug_key\" exists on \"Variant\" with the planned definition",
+				"params": [
+					"\"public\".\"Variant_slug_key\"",
+					"i",
+					"I",
+					"\"public\".\"Variant\"",
+					"btree",
+					"[\"slug\"]"
+				],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND \"i\".\"indisunique\" AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\""
+			}
+		],
+		"precheck": [
+			{
+				"description": "ensure index \"Variant_slug_key\" does not exist",
+				"expectation": {
+					"expects": "absent",
+					"object": "index \"Variant_slug_key\""
+				},
+				"params": ["\"public\".\"Variant_slug_key\""],
+				"sql": "SELECT (to_regclass($1)) IS NULL AS \"result\""
+			}
+		],
+		"target": {
+			"details": {
+				"name": "Variant_slug_key",
+				"objectType": "index",
+				"schema": "public",
+				"table": "Variant"
+			},
+			"id": "postgres"
+		}
+	},
+	{
+		"execute": [
+			{
+				"description": "create index \"session_token_key\"",
+				"params": [],
+				"sql": "CREATE UNIQUE INDEX \"session_token_key\" ON \"public\".\"session\" (\"token\")"
+			}
+		],
+		"id": "index.session.session_token_key",
+		"label": "Create index \"session_token_key\" on \"session\"",
+		"operationClass": "additive",
+		"postcheck": [
+			{
+				"description": "verify index \"session_token_key\" exists on \"session\" with the planned definition",
+				"params": [
+					"\"public\".\"session_token_key\"",
+					"i",
+					"I",
+					"\"public\".\"session\"",
+					"btree",
+					"[\"token\"]"
+				],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND \"i\".\"indisunique\" AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\""
+			}
+		],
+		"precheck": [
+			{
+				"description": "ensure index \"session_token_key\" does not exist",
+				"expectation": {
+					"expects": "absent",
+					"object": "index \"session_token_key\""
+				},
+				"params": ["\"public\".\"session_token_key\""],
+				"sql": "SELECT (to_regclass($1)) IS NULL AS \"result\""
+			}
+		],
+		"target": {
+			"details": {
+				"name": "session_token_key",
+				"objectType": "index",
+				"schema": "public",
+				"table": "session"
+			},
+			"id": "postgres"
+		}
+	},
+	{
+		"execute": [
+			{
+				"description": "create index \"user_email_key\"",
+				"params": [],
+				"sql": "CREATE UNIQUE INDEX \"user_email_key\" ON \"public\".\"user\" (\"email\")"
+			}
+		],
+		"id": "index.user.user_email_key",
+		"label": "Create index \"user_email_key\" on \"user\"",
+		"operationClass": "additive",
+		"postcheck": [
+			{
+				"description": "verify index \"user_email_key\" exists on \"user\" with the planned definition",
+				"params": [
+					"\"public\".\"user_email_key\"",
+					"i",
+					"I",
+					"\"public\".\"user\"",
+					"btree",
+					"[\"email\"]"
+				],
+				"sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND \"i\".\"indisunique\" AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\""
+			}
+		],
+		"precheck": [
+			{
+				"description": "ensure index \"user_email_key\" does not exist",
+				"expectation": {
+					"expects": "absent",
+					"object": "index \"user_email_key\""
+				},
+				"params": ["\"public\".\"user_email_key\""],
+				"sql": "SELECT (to_regclass($1)) IS NULL AS \"result\""
+			}
+		],
+		"target": {
+			"details": {
+				"name": "user_email_key",
+				"objectType": "index",
+				"schema": "public",
+				"table": "user"
+			},
+			"id": "postgres"
+		}
+	}
+]
