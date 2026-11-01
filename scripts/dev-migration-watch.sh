@@ -7,7 +7,7 @@ interval=${DEV_WATCH_INTERVAL:-5}
 target=${DEV_WATCH_PID:-1}
 
 fingerprint() {
-  find packages/sql/src/migrations packages/sql/src/models packages/sql/prisma.config.ts \
+  find packages/sql/migrations packages/sql/src/contract.prisma packages/sql/prisma.config.ts \
     -type d -name refs -prune -o -type f -exec sha256sum {} \; |
     LC_ALL=C sort | sha256sum
 }

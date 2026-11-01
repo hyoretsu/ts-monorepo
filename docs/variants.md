@@ -69,7 +69,9 @@ package setting. Signing credentials are never stored in variants.
 
 ## Schema and verification
 
-Migration lives in `packages/sql/src/migrations/20261018000000_variants/`. Operators apply versioned
+The native migration graph lives in `packages/sql/migrations/app`; variant schema is
+part of its foundation contract. `packages/sql/src/migrations/20261018000000_variants/`
+is immutable historical SQL, not an active deployment input. Operators apply versioned
 migrations separately to their intended databases. Implementation does not apply remote migrations.
 Integration/E2E scenarios use disposable local services through `scripts/test-runner.ts`; no unit
 or coverage gates are introduced. Formatting, lint and type validation run through normal commit

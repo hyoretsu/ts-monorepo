@@ -4,8 +4,9 @@ Read before implementation or review. These rules supplement [AGENTS.md](../AGEN
 
 ## Template architecture
 
-- Keep Prisma 7 + Kysely + Prismabox. Do not migrate to Prisma 8 contracts. Models live in packages/sql/src/models; version SQL migrations under packages/sql/src/migrations.
-- Keep Elysia modules, useCases, repositories and TypeBox DTOs. Compose repository writes and outbox events through the shared UnitOfWork. Kysely queries must use the transaction's $kysely client.
+- Use native Prisma 8 PostgreSQL contracts. The source contract is `packages/sql/src/contract.prisma`; `prisma contract emit` produces `out/prisma/contract.json` and `contract.d.ts`, then the custom generator produces `out/typebox/barrel.ts`. Version the native migration graph under `packages/sql/migrations/app` (with its snapshots under `packages/sql/migrations/snapshots`). Preserve `packages/sql/src/migrations` as immutable historical SQL, not the active migration graph.
+- Compatibility invariant: Prisma CLI `8.0.0-rc.29` and `@prisma/orm-postgres` `8.0.0-rc.22` require root overrides pinning `@prisma/orm-toolchain` and `@prisma/orm-framework` to `8.0.0-rc.22`. The rc.21 CLI descriptor is incompatible; update these together when upgrading the release candidates.
+- Keep Elysia modules, useCases, repositories and TypeBox DTOs. Compose repository writes and outbox events through the shared UnitOfWork. Use the SQL runtime exports `db`, `DatabaseClient`, `withTransaction`, `afterCommit`, `queryRaw`, `executeRaw`, `closeDatabase`, `and` and `or`; ORM and builder work must share the active transaction. Raw SQL is reserved for outbox lease `SKIP LOCKED`, advisory locks, auth row-lock increments, and migration DDL.
 - Redis, RabbitMQ and worker are active by default. Use service-namespace.ts for every key, exchange and queue, including retry/DLQ; template is production, template_dev is non-production, SERVICE_NAMESPACE overrides both. Never reuse a production namespace in development.
 - External service calls may use the shared Redis-backed DistributedCircuitBreaker (`backend/src/shared/infra/DistributedCircuitBreaker.ts`). Name each dependency with a stable service identifier, explicitly classify successes/failures/ignored outcomes, and configure rolling window, minimum samples, failure ratio, open interval and probe lease. State is shared across workers; Redis unavailability denies calls rather than silently bypassing the breaker. A half-open permit is single-probe and leased, with fenced completions; expiry reopens the breaker for another cooldown, but does not cancel an in-flight operation. Closed-state permit completions are idempotent within the rolling window. Breakers do not retry operations, especially mutations. Use `inspect()` and transition callbacks for diagnostics, not as a substitute for handling denied calls.
 - Broker delivery is at least once. Use transactional consumer receipts, idempotent handlers, bounded retries, DLQ and outbox publication confirms. Never publish a durable business event independently of its database transaction.
@@ -54,15 +55,15 @@ starting Turbo's development tasks. Keep the backend processes in one lifecycle
 so schema changes cannot leave a separate worker running against an old schema.
 Postgres, Redis, RabbitMQ and Mailpit remain separate services.
 
-`scripts/dev-migration-watch.sh` polls `packages/sql/src/migrations`,
-`packages/sql/src/models` and `packages/sql/prisma.config.ts` every five seconds.
+`scripts/dev-migration-watch.sh` polls `packages/sql/migrations`,
+`packages/sql/src/contract.prisma` and `packages/sql/prisma.config.ts` every five seconds.
 After two stable observations of changed contents, it terminates PID 1;
 `restart: unless-stopped` reruns startup and migrations. No host watcher, attached
 terminal, systemd or Docker socket mount is needed. Generated output and source-only
 changes do not trigger container restarts; Bun/Vite keep their normal hot reload.
 Migration `refs/` directories are ignored to prevent generated state from causing
-restart loops. Model changes alone do not create migrations; author and version
-the corresponding SQL migration first.
+restart loops. Contract changes alone do not create migrations; author and version
+the corresponding native migration first.
 
 After updating an existing stack, recreate it with
 `docker compose up -d --remove-orphans` to replace the old prepare/API/worker/frontend

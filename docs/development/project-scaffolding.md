@@ -7,10 +7,10 @@ replacing unrelated settings.
 
 ## Choose location and register workspace
 
-| Kind | Location | Root `workspaces` entry |
-| --- | --- | --- |
-| Major application or service | `backend/`, `frontend/`, `mobile/`, `admin/` | Explicit directory per project |
-| Shared library or support package | `packages/components/`, `packages/sql/`, `packages/common/` | One `packages/*` glob |
+| Kind                              | Location                                                    | Root `workspaces` entry        |
+| --------------------------------- | ----------------------------------------------------------- | ------------------------------ |
+| Major application or service      | `backend/`, `frontend/`, `mobile/`, `admin/`                | Explicit directory per project |
+| Shared library or support package | `packages/components/`, `packages/sql/`, `packages/common/` | One `packages/*` glob          |
 
 Use responsibility, not code size, to choose placement. Keep repository operations
 in root `scripts/`; do not create a workspace for every script. An existing native
@@ -20,7 +20,7 @@ For example, root `package.json` can contain:
 
 ```json
 {
-  "workspaces": ["backend", "frontend", "mobile", "admin", "packages/*"]
+	"workspaces": ["backend", "frontend", "mobile", "admin", "packages/*"]
 }
 ```
 
@@ -44,16 +44,16 @@ manifest for `packages/common` is:
 
 ```json
 {
-  "name": "@repo/common",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "check-types": "tsc --noEmit"
-  },
-  "devDependencies": {
-    "@hyoretsu/configs": "^1.2.35",
-    "typescript": "^5.9.3"
-  }
+	"name": "@repo/common",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check-types": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@hyoretsu/configs": "^1.2.35",
+		"typescript": "^5.9.3"
+	}
 }
 ```
 
@@ -62,12 +62,12 @@ Start its `tsconfig.json` with:
 
 ```json
 {
-  "extends": "@hyoretsu/configs/ts",
-  "compilerOptions": {
-    "types": []
-  },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "out", "dist"]
+	"extends": "@hyoretsu/configs/ts",
+	"compilerOptions": {
+		"types": []
+	},
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules", "out", "dist"]
 }
 ```
 
@@ -102,7 +102,7 @@ Create `packages/components/src/Badge.tsx`:
 
 ```tsx
 export function Badge({ label }: { label: string }) {
-  return <span>{label}</span>;
+	return <span>{label}</span>;
 }
 ```
 
@@ -116,28 +116,28 @@ Use this `package.json`, aligning versions with the consuming frontend:
 
 ```json
 {
-  "name": "@repo/components",
-  "private": true,
-  "type": "module",
-  "exports": {
-    ".": {
-      "types": "./out/index.d.ts",
-      "import": "./out/index.js"
-    }
-  },
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "check-types": "tsc -p tsconfig.json --noEmit"
-  },
-  "peerDependencies": {
-    "react": "^19"
-  },
-  "devDependencies": {
-    "@hyoretsu/configs": "^1.2.35",
-    "@types/react": "^19",
-    "react": "^19",
-    "typescript": "^5.9.3"
-  }
+	"name": "@repo/components",
+	"private": true,
+	"type": "module",
+	"exports": {
+		".": {
+			"types": "./out/index.d.ts",
+			"import": "./out/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc -p tsconfig.json",
+		"check-types": "tsc -p tsconfig.json --noEmit"
+	},
+	"peerDependencies": {
+		"react": "^19"
+	},
+	"devDependencies": {
+		"@hyoretsu/configs": "^1.2.35",
+		"@types/react": "^19",
+		"react": "^19",
+		"typescript": "^5.9.3"
+	}
 }
 ```
 
@@ -145,18 +145,18 @@ Use this `tsconfig.json`:
 
 ```json
 {
-  "extends": "@hyoretsu/configs/ts-lib",
-  "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "out",
-    "emitDeclarationOnly": false,
-    "declaration": true,
-    "jsx": "react-jsx",
-    "lib": ["ESNext", "DOM", "DOM.Iterable"],
-    "types": ["react"]
-  },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
-  "exclude": ["node_modules", "out"]
+	"extends": "@hyoretsu/configs/ts-lib",
+	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "out",
+		"emitDeclarationOnly": false,
+		"declaration": true,
+		"jsx": "react-jsx",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"types": ["react"]
+	},
+	"include": ["src/**/*.ts", "src/**/*.tsx"],
+	"exclude": ["node_modules", "out"]
 }
 ```
 
@@ -177,30 +177,30 @@ exports; preserve existing prerequisites such as generation or variant preparati
 
 ```json
 {
-  "tasks": {
-    "build": {
-      "cache": true,
-      "dependsOn": ["^build", "^export"],
-      "inputs": ["$TURBO_DEFAULT$", "!out/**"],
-      "outputs": ["out/**"]
-    },
-    "export": {
-      "cache": true,
-      "dependsOn": ["^export"],
-      "inputs": ["$TURBO_DEFAULT$", "!out/**"],
-      "outputs": ["out/**"]
-    },
-    "check-types": {
-      "dependsOn": ["^build", "^export"],
-      "inputs": ["$TURBO_DEFAULT$", "!out/**"],
-      "outputs": []
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": ["^build", "^export"]
-    }
-  }
+	"tasks": {
+		"build": {
+			"cache": true,
+			"dependsOn": ["^build", "^export"],
+			"inputs": ["$TURBO_DEFAULT$", "!out/**"],
+			"outputs": ["out/**"]
+		},
+		"export": {
+			"cache": true,
+			"dependsOn": ["^export"],
+			"inputs": ["$TURBO_DEFAULT$", "!out/**"],
+			"outputs": ["out/**"]
+		},
+		"check-types": {
+			"dependsOn": ["^build", "^export"],
+			"inputs": ["$TURBO_DEFAULT$", "!out/**"],
+			"outputs": []
+		},
+		"dev": {
+			"cache": false,
+			"persistent": true,
+			"dependsOn": ["^build", "^export"]
+		}
+	}
 }
 ```
 
@@ -258,7 +258,9 @@ exports; preserve existing prerequisites such as generation or variant preparati
 - Root workspaces already include `backend`, `frontend`, and `packages/*`; add only
   genuinely new root applications. Preserve generation and `variant:prepare` edges.
 - Existing SQL manifest exports `.` from `src/index.ts` and `./typebox` from
-  `out/prismabox/barrel.ts`. Existing `@template/domain` also exports source. These
+  `out/typebox/barrel.ts`, generated from `src/contract.prisma` via
+  `prisma contract emit` (`out/prisma/contract.json` and `contract.d.ts`) and
+  the custom TypeBox generator. Existing `@template/domain` also exports source. These
   are legacy exceptions, not patterns for new public entry points; no migration is
   included with this guide.
 - Backend `export` writes `backend/out/openapi.json`; backend runtime build writes

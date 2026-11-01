@@ -5,6 +5,7 @@ import { join } from "node:path";
 const root = join(import.meta.dir, "..");
 const defaults = join(root, "branding/defaults");
 const slug = process.env.VARIANT?.trim() || "";
+let sqlLoaded = false;
 export interface VariantBranding {
 	slug: string;
 	name: string;
@@ -24,15 +25,11 @@ export async function resolveVariant(selection: string): Promise<VariantBranding
 	const selected = selection.trim();
 	if (!selected) return null;
 	if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(selected)) throw new Error(`Invalid VARIANT slug: ${selected}`);
-	const { PrismaClient, adapter } = await import("../packages/sql/src/index");
-	const prisma = new PrismaClient({ adapter });
-	try {
-		const variant = await prisma.variant.findUnique({ where: { slug: selected } });
-		if (!variant) throw new Error(`Unknown VARIANT: ${selected}`);
-		return variant;
-	} finally {
-		await prisma.$disconnect();
-	}
+	const { db } = await import("../packages/sql/src/index");
+	sqlLoaded = true;
+	const variant = await db.orm.public.Variant.where({ slug: selected }).first();
+	if (!variant) throw new Error(`Unknown VARIANT: ${selected}`);
+	return variant;
 }
 function httpUrl(value: string | null | undefined) {
 	if (!value) return null;
@@ -196,6 +193,13 @@ if (import.meta.main) {
 	try {
 		await prepareVariant(await resolveVariant(slug));
 	} finally {
-		await rm(lock, { force: true, recursive: true });
+		try {
+			if (sqlLoaded) {
+				const { closeDatabase } = await import("../packages/sql/src/index");
+				await closeDatabase();
+			}
+		} finally {
+			await rm(lock, { force: true, recursive: true });
+		}
 	}
 }

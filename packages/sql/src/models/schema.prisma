@@ -1,27 +1,5 @@
-generator client {
-    provider        = "prisma-client"
-    previewFeatures = ["nativeDistinct", "relationJoins", "views"]
-    output          = "../../out/prisma"
-}
-
-generator kysely {
-    provider            = "prisma-kysely"
-    output              = "../../out/kysely"
-    previewFeatures     = ["views"]
-    decimalTypeOverride = "number"
-    fileName            = "types.ts"
-    jsonTypeOverride    = "Record<string,any>"
-}
-
-generator prismabox {
-    provider                    = "prismabox"
-    output                      = "../../out/prismabox"
-    generateTsTypes             = true
-    typeboxImportDependencyName = "elysia"
-    typeboxImportVariableName   = "t"
-    unwrapSchemaImportName      = "UnwrapSchema"
-}
-
+// Historical Prisma 7 model fixtures for contract-equivalence tests only.
+// Active schema: ../contract.prisma. No legacy generators are installed or run.
 datasource db {
     provider = "postgresql"
 }

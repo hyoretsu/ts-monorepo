@@ -44,6 +44,7 @@ COPY --from=build /app/packages/sql/package.json /app/packages/sql/prisma.config
 COPY --from=build /app/backend/dist ./backend/dist
 COPY --from=build /app/packages/sql/out ./packages/sql/out
 COPY --from=build /app/packages/sql/src ./packages/sql/src
+COPY --from=build /app/packages/sql/migrations ./packages/sql/migrations
 COPY --from=build /app/packages/domain ./packages/domain
 
 WORKDIR /app/backend

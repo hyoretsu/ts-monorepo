@@ -8,7 +8,7 @@ API, worker, Redis and RabbitMQ are enabled by default. Production images use `c
 
 ## Modules and transactions
 
-Keep `infra`, `useCases`, `dtos` and barrel conventions. `@template/domain` holds pure shared rules. Extend the repository context for new modules. Every business write and durable event belongs inside the same UnitOfWork transaction. Prisma and the transaction's `$kysely` share a connection. Use afterCommit only for best-effort effects.
+Keep `infra`, `useCases`, `dtos` and barrel conventions. `@template/domain` holds pure shared rules. Extend the repository context for new modules. Every business write and durable event belongs inside the same UnitOfWork transaction. Native Prisma 8 ORM and builder queries share the `withTransaction` connection through the SQL runtime. Use afterCommit only for best-effort effects.
 
 Example creation writes an outbox event. The publisher leases pending rows and retries failures; the worker processes events with transactional receipts and emits a completion event. Delivery is at least once. Keep handlers idempotent. Redis generation keys prevent old concurrent fills from populating a new cache generation. Cache failures fall back to PostgreSQL; invalidation retries through RabbitMQ. Session mirrors never authorize a revoked database session.
 
@@ -30,7 +30,7 @@ Before adding a workspace or changing dependency/task wiring, follow the
 [project scaffolding guide](development/project-scaffolding.md).
 
 Compose runs API, worker and frontend in the `dev` container. Its internal migration
-monitor restarts all three after stable migration/model/config changes, applying
+monitor restarts all three after stable migration/contract/config changes, applying
 migrations before development processes start. No attached Compose Watch process
 is needed. When upgrading from the older split-service setup, use
 `docker compose up -d --remove-orphans` to remove obsolete application containers.
