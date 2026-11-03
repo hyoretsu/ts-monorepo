@@ -3,7 +3,11 @@ import { createConfig } from "@hyoretsu/kubb/config";
 
 export default createConfig({
 	config: {
-		api: { jsonPath: path.resolve(import.meta.dirname, "../backend/out/openapi.json"), name: "api" },
+		api: {
+			clientImportPath: "@/lib/api/client-api",
+			jsonPath: path.resolve(import.meta.dirname, "../backend/out/openapi.json"),
+			name: "api",
+		},
 	},
 	dateType: "string",
 	exclude: [{ pattern: "External", type: "tag" }],

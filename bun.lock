@@ -463,7 +463,6 @@
 
     "@hyoretsu/configs": ["@hyoretsu/configs@1.2.33", "", { "dependencies": { "@eslint/js": "^10.0.1", "eslint": "^10.1.0", "eslint-config-biome": "^2.1.3", "typescript-eslint": "^8.58.0" }, "peerDependencies": { "@biomejs/biome": "^2.4.0", "@commitlint/cli": "^20.5.1", "@commitlint/config-conventional": "^20.5.1", "@commitlint/prompt-cli": "^20.5.1", "lint-staged": "^6.0.0", "typescript": "^6.0.0" }, "optionalPeers": ["@biomejs/biome", "@commitlint/cli", "@commitlint/config-conventional", "@commitlint/prompt-cli", "lint-staged", "typescript"] }, "sha512-07EtvVok12AiPfwah5mqtIt2+Ef2o01jAxXhZIBfgPRkPud6QzBn5WO1NxTBju8wM4CJ/ceo+ppY3xo5XuzPjA=="],
 
-    "@hyoretsu/kubb": ["@hyoretsu/kubb@4.0.0", "", {"dependencies": {"@hyoretsu/utils": "^1.18.1", "@kubb/adapter-oas": "^5.15.3", "@kubb/plugin-client": "^5.9.0", "@kubb/plugin-react-query": "^5.9.0", "@kubb/plugin-ts": "^5.4.0", "@kubb/plugin-zod": "^5.6.0", "dayjs": "^1.11.20"}, "peerDependencies": {"@tanstack/react-query": "^5.99.2", "kubb": "^5.15.3", "ky": "^2.0.1", "zod": "^4.3.6"}}],
 
     "@hyoretsu/utils": ["@hyoretsu/utils@1.18.1", "", {}, "sha512-ogYE2x0T6BK+P6rgsDJGIbj39s6czZOCf6ldwqVp+BtRV9SiSXKhW2wL92TUsz42P3DUK+u5Ikwz1W3tF8iYzA=="],
 
