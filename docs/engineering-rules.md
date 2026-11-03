@@ -73,6 +73,8 @@ Migration `refs/` directories are ignored to prevent generated state from causin
 restart loops. Contract changes alone do not create migrations; author and version
 the corresponding native migration first.
 
+When a project versions `packages/sql/migrations/app/refs/db.json` (the template itself ignores `refs/`), the file records the contract hash and data invariants at the end of the migration chain. A commit that adds or changes migrations or snapshots must also update it, in the same commit, so it reflects that commit's work; its hash must point to a committed or staged snapshot. Confirm the value by applying the chain to a disposable test database (never a remote or shared one); `migrate --advance-ref db` writes the resulting reference. Do not advance it for work outside the commit (another task's uncommitted migrations or snapshots), and never commit the temporary `deploy-*.json` references that interrupted runs leave beside it.
+
 After updating an existing stack, recreate it with
 `docker compose up -d --remove-orphans` to replace the old prepare/API/worker/frontend
 services. This runs migrations against the configured database; remote/shared
