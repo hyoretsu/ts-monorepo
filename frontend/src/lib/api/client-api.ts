@@ -1,4 +1,8 @@
-import { createClient, type RequestConfig as KubbRequestConfig } from "@hyoretsu/kubb/client";
+import {
+	createClient,
+	createOperationClient,
+	type RequestConfig as KubbRequestConfig,
+} from "@hyoretsu/kubb/client";
 import ky, { type Options } from "ky";
 import { branding } from "../branding";
 
@@ -8,7 +12,7 @@ export type { ResponseConfig, ResponseErrorConfig } from "@hyoretsu/kubb/client"
 export type RequestConfig<TVariables = unknown> = KubbRequestConfig<TVariables> & {
 	timeout?: Options["timeout"];
 };
-export type Client = typeof client;
+export type Client = typeof legacyClient;
 
 const transport = createClient(
 	ky.extend({
@@ -19,7 +23,7 @@ const transport = createClient(
 	}),
 );
 
-export default function client<TData, TError = unknown, TVariables = unknown>(
+export default function legacyClient<TData, TError = unknown, TVariables = unknown>(
 	config: RequestConfig<TVariables>,
 	options?: Options,
 ) {
@@ -31,3 +35,6 @@ export default function client<TData, TError = unknown, TVariables = unknown>(
 		timeout: options?.timeout ?? config.timeout ?? false,
 	});
 }
+
+export const client = createOperationClient(legacyClient);
+export type { OperationOptions as Options, RequestResult } from "@hyoretsu/kubb/client";

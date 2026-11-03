@@ -1,18 +1,10 @@
 import path from "node:path";
 import { createConfig } from "@hyoretsu/kubb/config";
-import type { Config } from "@kubb/core";
 
 export default createConfig({
 	config: {
-		api: {
-			jsonPath: path.resolve(__dirname, "../backend/out/openapi.json"),
-			name: "api",
-		},
+		api: { jsonPath: path.resolve(import.meta.dirname, "../backend/out/openapi.json"), name: "api" },
 	},
-	exclude: [
-		{
-			pattern: "External",
-			type: "tag",
-		},
-	],
-}) as Config;
+	dateType: "string",
+	exclude: [{ pattern: "External", type: "tag" }],
+});
