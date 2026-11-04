@@ -21,7 +21,7 @@ const url = new URL(appUrl);
 if (url.protocol !== "https:") throw new Error("Associated links require HTTPS.");
 if (
 	!/^[A-Za-z0-9]+$/.test(teamId) ||
-	!/^([A-Za-z][A-Za-z0-9_]*\.)+[A-Za-z][A-Za-z0-9_]*$/.test(appId) ||
+	!/^([A-Za-z][A-Za-z0-9_-]*\.)+[A-Za-z][A-Za-z0-9_-]*$/.test(appId) ||
 	fingerprints.some(value => !/^([0-9A-Fa-f]{2}:){31}[0-9A-Fa-f]{2}$/.test(value))
 )
 	throw new Error("Invalid application identifiers or certificate fingerprints.");
@@ -33,7 +33,11 @@ await writeFile(
 		[
 			{
 				relation: ["delegate_permission/common.handle_all_urls"],
-				target: { namespace: "android_app", package_name: appId, sha256_cert_fingerprints: fingerprints },
+				target: {
+					namespace: "android_app",
+					package_name: appId.replaceAll("-", "_"),
+					sha256_cert_fingerprints: fingerprints,
+				},
 			},
 		],
 		null,
@@ -46,7 +50,9 @@ await writeFile(
 		{
 			applinks: {
 				apps: [],
-				details: [{ appID: `${teamId}.${appId}`, paths: ["/auth/reset-password*", "/auth/verify-email*"] }],
+				details: [
+					{ appID: `${teamId}.${appId}`, paths: ["/auth/reset-password*", "/auth/verify-email*"] },
+				],
 			},
 		},
 		null,

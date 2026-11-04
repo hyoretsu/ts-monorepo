@@ -98,7 +98,8 @@ export async function prepareVariant(variant: VariantBranding | null) {
 		if (variant) {
 			conf.productName = name;
 			conf.app.windows[0].title = name;
-			conf.identifier = variant.nativePackageId || conf.identifier;
+			// Tauri bundle identifiers reject underscores; Android maps hyphens back to underscores.
+			if (variant.nativePackageId) conf.identifier = variant.nativePackageId.replaceAll("_", "-");
 		}
 		if (mobile) {
 			const result = Bun.spawnSync(
