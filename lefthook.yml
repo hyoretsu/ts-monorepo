@@ -4,7 +4,7 @@ commit-msg:
   parallel: true
   jobs:
     - name: "Validate commit message"
-      run: bunx commitlint --edit {1}
+      run: bunx commitlint --edit "{1}"
 
 post-merge:
   parallel: true
