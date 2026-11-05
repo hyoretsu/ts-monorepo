@@ -73,6 +73,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      # Tauri validates the bundle identifier before any beforeBuildCommand runs, so the
+      # variant branding (including its native identifier) must be prepared first.
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies for variant preparation
+        run: bun install --frozen-lockfile --ignore-scripts
+
+      - name: Prepare variant branding
+        run: bunx turbo run variant:prepare --filter frontend --env-mode=loose
+
       - name: Build Android app (debug, unsigned)
         uses: hyoretsu/gh-actions/tauri-android-build@main
         with:

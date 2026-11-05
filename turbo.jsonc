@@ -9,18 +9,18 @@
 			"env": ["VITE_API_URL", "VITE_APP_URL"],
 			"inputs": ["$TURBO_DEFAULT$", "!src/**/generated/**"],
 			"outputLogs": "new-only",
-			"outputs": ["build/**", "dist/**", "out/**", ".next/**", "!.next/cache/**"]
+			"outputs": ["build/**", "dist/**", "out/**", ".next/**", "!.next/cache/**"],
 		},
 		"check-types": {
 			"cache": false,
 			"dependsOn": ["^export", "generate", "variant:prepare"],
 			"inputs": ["$TURBO_DEFAULT$", "tsconfig*.json"],
-			"outputLogs": "new-only"
+			"outputLogs": "new-only",
 		},
 		"dev": {
 			"cache": false,
 			"dependsOn": ["^export", "generate", "variant:prepare"],
-			"persistent": true
+			"persistent": true,
 		},
 		"export": {
 			"cache": false,
@@ -28,41 +28,69 @@
 			"env": ["DATABASE_URL"],
 			"inputs": ["$TURBO_DEFAULT$", "!src/**/generated/**"],
 			"outputLogs": "new-only",
-			"outputs": ["out/**"]
+			"outputs": ["out/**"],
 		},
 		"frontend#generate": {
 			"dependsOn": ["^export"],
 			"inputs": ["kubb.config.ts", "../backend/out/openapi.json"],
 			"outputLogs": "new-only",
-			"outputs": ["src/lib/api/generated/**"]
+			"outputs": ["src/lib/api/generated/**"],
+		},
+		"frontend#tauri": {
+			"cache": false,
+			"dependsOn": ["^export", "generate", "variant:prepare"],
+			"env": ["VARIANT"],
+		},
+		"frontend#tauri:android": {
+			"cache": false,
+			"dependsOn": ["^export", "generate", "variant:prepare"],
+			"env": ["VARIANT"],
+			"persistent": true,
+		},
+		"frontend#tauri:build": {
+			"cache": false,
+			"dependsOn": ["^export", "generate", "variant:prepare"],
+			"env": ["VARIANT"],
+		},
+		"frontend#tauri:dev": {
+			"cache": false,
+			"dependsOn": ["^export", "generate", "variant:prepare"],
+			"env": ["VARIANT"],
+			"persistent": true,
+		},
+		"frontend#tauri:ios": {
+			"cache": false,
+			"dependsOn": ["^export", "generate", "variant:prepare"],
+			"env": ["VARIANT"],
+			"persistent": true,
 		},
 		"generate": {
 			"dependsOn": ["^export"],
 			"env": ["DATABASE_URL"],
 			"inputs": ["$TURBO_DEFAULT$", "!src/generated/**"],
 			"outputLogs": "new-only",
-			"outputs": ["src/generated/**"]
+			"outputs": ["src/generated/**"],
 		},
 		"migrate:deploy": {
 			"env": ["DATABASE_URL", "DATABASE_TEST_URL"],
 			"inputs": ["src/migrations/**"],
-			"outputLogs": "new-only"
+			"outputLogs": "new-only",
 		},
 		"test": {
-			"dependsOn": ["test:integration", "test:e2e"]
+			"dependsOn": ["test:integration", "test:e2e"],
 		},
 		"test:e2e": {
 			"cache": false,
-			"dependsOn": ["^export"]
+			"dependsOn": ["^export"],
 		},
 		"test:integration": {
 			"cache": false,
-			"dependsOn": ["^export"]
+			"dependsOn": ["^export"],
 		},
 		"variant:prepare": {
 			"cache": false,
 			"dependsOn": ["^export"],
-			"env": ["VARIANT", "DATABASE_URL"]
-		}
-	}
+			"env": ["VARIANT", "DATABASE_URL"],
+		},
+	},
 }

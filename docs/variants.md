@@ -19,9 +19,11 @@ administrator session; anonymous and ordinary users receive authentication/autho
 
 ## Local preparation
 
-`bun run variant:prepare` in backend/frontend prepares branding. Direct `dev`, `build`,
-`check-types`, backend `export`, and Tauri scripts prepare first. Turbo runs the preparation
-prerequisite too. Preparation validates complete selected configuration and downloads before
+`bun run variant:prepare` in backend/frontend prepares branding. Turbo runs it as a prerequisite
+of `dev`, `build`, `check-types`, `export` and the frontend Tauri tasks, so run those through
+Turbo (`bun run dev`, `bunx turbo run tauri:build --filter frontend`); package scripts invoked
+directly do not prepare. CI runs it explicitly before Tauri builds, which validate the bundle
+identifier before any `beforeBuildCommand`. Preparation validates complete selected configuration and downloads before
 replacing outputs; every successful preparation restores canonical defaults before applying
 selected overrides. Restart development watchers after changing selection or database branding.
 
