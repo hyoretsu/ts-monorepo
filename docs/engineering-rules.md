@@ -61,15 +61,15 @@ a missing response does not prove that the backend rolled back the operation.
 Startup installs dependencies, generates SQL code and deploys migrations before
 starting Turbo's development tasks. Keep the backend processes in one lifecycle
 so schema changes cannot leave a separate worker running against an old schema.
-Postgres, Redis, RabbitMQ and Mailpit remain separate services.
-
-The `dev` container runs as the host user (`UID`/`GID`, default 1000) and shares the
-host Bun install cache; `node_modules` lives in the bind-mounted checkout. It joins the
-external `proxy` network (`docker network create proxy`) and exposes Caddy labels for
-`template.hyoretsu.com` and `template-api.hyoretsu.com` (rename per project). Its
-healthcheck (`scripts/dev-healthcheck.sh`, probing API and frontend through
-`scripts/dev-healthcheck.ts`) terminates PID 1 after three consecutive failures
-past the five-minute start period, so `restart: unless-stopped` recovers it.
+Compose runs only `dev`: PostgreSQL, Redis, RabbitMQ and the mail server come from outside
+and are configured through `.env` (`DATABASE_URL`, `REDIS_URL`, `RABBITMQ_URL`, `MAIL_*`).
+The container runs as the host user (`UID`/`GID`, default 1000), shares the host Bun
+install cache and keeps `node_modules` in the bind-mounted checkout. It joins the external
+`proxy` network (`docker network create proxy`) with Caddy labels for
+`template.hyoretsu.com` (frontend) and `template-api.hyoretsu.com` (API); rename per project.
+`scripts/dev-healthcheck.sh` runs `scripts/dev-healthcheck.ts` (API `/health`, frontend,
+Postgres, Redis, RabbitMQ) and terminates PID 1 after three consecutive failures past the
+five-minute start period, so `restart: unless-stopped` recovers the container.
 
 `scripts/dev-migration-watch.sh` polls `packages/sql/migrations`,
 `packages/sql/src/contract.prisma` and `packages/sql/prisma.config.ts` every five seconds.

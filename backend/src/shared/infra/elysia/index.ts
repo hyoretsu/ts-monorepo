@@ -49,4 +49,5 @@ export const app = new Elysia({ normalize: "typebox" })
 
 		return auth.handler(request);
 	})
-	.use(OpenAPI);
+	.use(OpenAPI)
+	.get("/health", () => ({ status: "ok" }));

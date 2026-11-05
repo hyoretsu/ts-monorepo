@@ -1,61 +1,18 @@
 name: template
-x-app: &app
-  image: oven/bun:1.4.3
-  working_dir: /app
-  user: "${UID:-1000}:${GID:-1000}"
-  volumes:
-    - .:/app
-    - ${BUN_INSTALL_CACHE_DIR:-${HOME}/.bun/install/cache}:/bun-cache
-  environment: &environment
-    BUN_INSTALL_CACHE_DIR: /bun-cache
-    HOME: /tmp
-    NODE_ENV: development
-    DATABASE_URL: postgresql://postgres:template@postgres:5432/template
-    REDIS_URL: redis://redis:6379
-    RABBITMQ_URL: amqp://template:template@rabbitmq:5672
-    SERVICE_NAMESPACE: template_dev
-    BETTER_AUTH_SECRETS: 1:local-template-development-secret-change-before-production
-    BETTER_AUTH_URL: http://localhost:3333
-    APP_URL: http://localhost:5173
-    CORS_WHITELIST: http://localhost:5173
-    MAIL_DRIVER: nodemailer
-    MAIL_HOST: mail
-    MAIL_PORT: "1025"
-    VITE_API_URL: http://localhost:3333
-    VITE_APP_URL: http://localhost:5173
-  init: true
+
 services:
-  postgres:
-    image: postgres:16
-    environment:
-      POSTGRES_PASSWORD: template
-      POSTGRES_DB: template
-    volumes: [postgres:/var/lib/postgresql/data]
-    healthcheck:
-      test: [CMD-SHELL, pg_isready -U postgres]
-      interval: 2s
-      timeout: 2s
-      retries: 30
-  redis:
-    image: redis:7-alpine
-    healthcheck:
-      test: [CMD, redis-cli, ping]
-      interval: 2s
-      timeout: 2s
-      retries: 30
-  rabbitmq:
-    image: rabbitmq:4-alpine
-    environment:
-      RABBITMQ_DEFAULT_USER: template
-      RABBITMQ_DEFAULT_PASS: template
-    healthcheck:
-      test: [CMD, rabbitmq-diagnostics, -q, ping]
-      interval: 5s
-      timeout: 5s
-      retries: 30
   dev:
-    <<: *app
-    entrypoint: [sh, -ec]
+    image: oven/bun:latest
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /app
+    init: true
+    environment:
+      BUN_INSTALL_CACHE_DIR: /bun-cache
+      HOME: /tmp
+    volumes:
+      - .:/app
+      - ${BUN_INSTALL_CACHE_DIR:-${HOME}/.bun/install/cache}:/bun-cache
+    entrypoint: ["sh", "-ec"]
     command:
       - |
         date +%s > /tmp/template-dev-started-at
@@ -66,28 +23,21 @@ services:
         bun -F sql migrate:deploy
         exec bun dev
     healthcheck:
-      test: [CMD, sh, /app/scripts/dev-healthcheck.sh]
+      test: ["CMD", "sh", "/app/scripts/dev-healthcheck.sh"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 5m
     restart: unless-stopped
-    ports: ["3333:3333", "5173:5173"]
-    networks: [default, proxy]
+    networks:
+      - proxy
     labels:
       caddy_1: template.hyoretsu.com
       caddy_1.reverse_proxy: "{{upstreams 5173}}"
+
       caddy_2: template-api.hyoretsu.com
       caddy_2.reverse_proxy: "{{upstreams 3333}}"
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-      rabbitmq: { condition: service_healthy }
-  mail:
-    image: axllent/mailpit:v1.27
-    ports: ["8025:8025"]
-volumes:
-  postgres:
+
 networks:
   proxy:
     external: true

@@ -2,7 +2,7 @@
 
 ## Local development
 
-Copy `.env.example` to `.env` for host development, or run `docker compose up -d` for the complete local stack. Compose prepares only its own PostgreSQL service. Mailpit receives development email at http://localhost:8025. Register a user through Better Auth `/auth/sign-up/email`, then sign in on the homepage.
+Copy `.env.example` to `.env` for host development, or run `docker compose up -d` for the app container (API, worker and frontend). Compose provides no databases or mail server: point `.env` at your own PostgreSQL, Redis, RabbitMQ and SMTP. Register a user through Better Auth `/auth/sign-up/email`, then sign in on the homepage.
 
 API, worker, Redis and RabbitMQ are enabled by default. Production images use `compose.production.yaml`; supply image references, credentials, service URLs, matching SERVICE_NAMESPACE and strong Better Auth secrets yourself. Its `migrate` service applies pending migrations (`migrate:deploy` of the SQL package, run with Bun) before API and worker start; see [migrations on deploy](development/cd.md#migrations-on-deploy). No deployment or migration against external databases is part of setup.
 
