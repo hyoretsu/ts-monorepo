@@ -5,6 +5,7 @@ import Elysia from "elysia";
 import { envSchema } from "@/env";
 import { DomainError } from "@/shared/errors/DomainError";
 import { auth } from "@/shared/infra/betterAuth";
+import { TAURI_ORIGINS } from "../tauri-origins";
 import { GlobalPlugin } from "./global";
 import { OpenAPI } from "./openapi";
 import { consume } from "./rateLimit";
@@ -24,7 +25,7 @@ export const app = new Elysia({ normalize: "typebox" })
 	.use([
 		cors({
 			credentials: true,
-			origin: process.env.CORS_WHITELIST?.split(",").filter(Boolean),
+			origin: [...(process.env.CORS_WHITELIST?.split(",").filter(Boolean) ?? []), ...TAURI_ORIGINS],
 		}),
 		staticPlugin({
 			assets: process.env.STATIC_DIR!,

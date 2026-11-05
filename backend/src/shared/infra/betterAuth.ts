@@ -6,10 +6,17 @@ import { ResetPasswordEmail } from "@/modules/users/emails";
 import { prisma8Adapter } from "./auth-adapter";
 import { AuthSecondaryStorage } from "./auth-secondary-storage";
 import { mailer } from "./mail";
+import { TAURI_ORIGINS } from "./tauri-origins";
 
 const algorithm = "argon2id";
 
 export const auth = betterAuth({
+	// Tauri webviews call the API cross-site; default SameSite=Lax cookies would never be stored or sent,
+	// so sign-in appears to succeed but the session read comes back empty.
+	advanced: {
+		defaultCookieAttributes:
+			process.env.NODE_ENV === "production" ? { sameSite: "none", secure: true } : undefined,
+	},
 	basePath: "/auth",
 	database: prisma8Adapter(),
 	emailAndPassword: {
@@ -49,7 +56,7 @@ export const auth = betterAuth({
 	},
 	secondaryStorage: new AuthSecondaryStorage(),
 	session: { cookieCache: { enabled: false }, storeSessionInDatabase: true },
-	trustedOrigins: process.env.CORS_WHITELIST!.split(","),
+	trustedOrigins: [...process.env.CORS_WHITELIST!.split(","), ...TAURI_ORIGINS],
 	user: { additionalFields: { role: { defaultValue: "user", input: false, type: "string" } } },
 	verification: { storeInDatabase: true },
 });
