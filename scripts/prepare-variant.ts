@@ -172,7 +172,10 @@ export async function prepareVariant(variant: VariantBranding | null) {
 		await replace(".variant-prepared.json", identity);
 		console.log(`Prepared ${variant ? `variant ${variant.slug}` : "template defaults"}`);
 	} finally {
-		await rm(stage, { force: true, recursive: true });
+		// Best-effort: Windows may still hold handles (EBUSY) and the OS reaps tmpdir.
+		await rm(stage, { force: true, maxRetries: 5, recursive: true, retryDelay: 200 }).catch(error => {
+			console.warn(`Could not remove temp dir ${stage}: ${error}`);
+		});
 	}
 }
 if (import.meta.main) {
