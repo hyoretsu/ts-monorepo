@@ -65,3 +65,6 @@ frontend/src-tauri/tauri.links.conf.json
 frontend/public/branding/
 
 .variant-prepared.json
+
+# Git worktrees
+.claude/worktrees/
