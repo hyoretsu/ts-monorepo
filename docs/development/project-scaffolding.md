@@ -86,7 +86,7 @@ JS entry points, declarations, generated clients, schemas, and OpenAPI documents
 Public package `exports` must resolve to `out/`, not `src/`. Consumers use produced
 artifacts; never hand-edit or commit generated output.
 
-An `export` task produces contracts/codegen artifacts, while `build` produces runtime
+The script is always named `export` (never `contract:emit`, `codegen` or another tool-specific name), writes only into `out/`, and is cached through a Turbo `export` task declaring `outputs: ["out/**"]`; consumers, including test and dev tasks, depend on `^export`. An `export` task produces contracts/codegen artifacts, while `build` produces runtime
 code when compilation is required. Choose one owner per output path; do not let
 independent tasks overwrite the same files. No placeholder export task or empty
 `out/` is needed for projects without exported artifacts.
