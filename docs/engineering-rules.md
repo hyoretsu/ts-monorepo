@@ -67,9 +67,10 @@ The container runs as the host user (`UID`/`GID`, default 1000), shares the host
 install cache and keeps `node_modules` in the bind-mounted checkout. It joins the external
 `proxy` network (`docker network create proxy`) with Caddy labels for
 `template.hyoretsu.com` (frontend) and `template-api.hyoretsu.com` (API); rename per project.
-`scripts/dev-healthcheck.sh` runs `scripts/dev-healthcheck.ts` (API `/health`, frontend,
+`scripts/dev-healthcheck.sh` runs `backend/scripts/dev-healthcheck.ts` (API `/health`, frontend,
 Postgres, Redis, RabbitMQ) and terminates PID 1 after three consecutive failures past the
-five-minute start period, so `restart: unless-stopped` recovers the container.
+five-minute start period, so `restart: unless-stopped` recovers the container. The script
+lives in `backend/scripts` so it resolves backend dependencies such as `amqplib`.
 
 `scripts/dev-migration-watch.sh` polls `packages/sql/migrations`,
 `packages/sql/src/contract.prisma` and `packages/sql/prisma.config.ts` every five seconds.
