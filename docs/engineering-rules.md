@@ -57,7 +57,7 @@ a missing response does not prove that the backend rolled back the operation.
 
 ## Development migration reload
 
-`docker compose up -d` runs API, worker and frontend together in the `dev` service. The `dev` service has a fixed `container_name` (`template-dev`), so only one dev container exists and recreating it never leaves a hash-prefixed copy.
+`docker compose up -d` runs API, worker and frontend together in the `dev` service. The `dev` service sets no `container_name`; Compose derives the name from the project, so several checkouts can run side by side.
 Startup installs dependencies, generates SQL code and deploys migrations before
 starting Turbo's development tasks. Keep the backend processes in one lifecycle
 so schema changes cannot leave a separate worker running against an old schema.
