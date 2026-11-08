@@ -1,4 +1,18 @@
 const staged = Bun.spawnSync(["git", "diff", "--cached", "--name-only"]).stdout.toString().split("\n");
+// Complexity is an opt-in project invariant, shared by every agent through the normal hook.
+const rootManifest = JSON.parse(await Bun.file("package.json").text());
+const complexityInput = (path: string) =>
+ (!/(?:^|\/)(?:node_modules|dist|build|out|generated|gen|target)\//.test(path) &&
+  !/\.gen\.[^/]+$|\.d\.(?:ts|mts|cts)$/.test(path) &&
+  /\.(?:[cm]?[jt]s|[jt]sx|rs)$/.test(path)) ||
+ path === "cccc.toml" || path === "package.json";
+if (rootManifest.scripts?.["check:complexity"] && staged.some(complexityInput)) {
+ const result = Bun.spawnSync(["bun", "run", "check:complexity"], {
+  stderr: "inherit", stdout: "inherit",
+ });
+ if (result.exitCode !== 0) process.exit(result.exitCode);
+}
+
 const manifests = [
 	"backend/package.json",
 	"frontend/package.json",
