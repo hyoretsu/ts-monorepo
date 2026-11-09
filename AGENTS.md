@@ -28,7 +28,7 @@ When running on the user's machine, never perform an action whose effect leaves 
 - Migrations, schema pushes, seeds or any command against a remote/shared/external database.
 - Triggering CI/CD, deploys or remote jobs; publishing packages; mutating external services.
 
-Local work is fine: edit files, run local builds/tests, commit locally. If a task needs to cross the boundary, describe the exact command and ask first.
+Local work is fine: edit files, run local builds/tests, commit locally. Downloading container images with `docker pull` for disposable local test infrastructure is also allowed without asking for confirmation. This permission covers image downloads only; the other external operations listed above still require explicit authorization. If a task needs to cross any other boundary, describe the exact command and ask first.
 
 Cloud/remote sessions have an ephemeral container and cannot rely on the user pushing: follow the environment's own instructions (push the designated branch, open a draft PR). Never run migrations against a remote/shared database from any session without explicit authorization.
 
