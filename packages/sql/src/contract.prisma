@@ -81,6 +81,7 @@ model OutboxEvent {
  userId String
  aggregateId String
  payload Jsonb
+ telemetryContext Jsonb?
  createdAt TimestampJsDate(3) @default(now())
  availableAt TimestampJsDate(3) @default(now())
  leaseUntil TimestampJsDate(3)?

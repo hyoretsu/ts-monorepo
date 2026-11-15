@@ -1,3 +1,4 @@
+import { observePool, operation as traceOperation, startDependency } from "@template/observability";
 import "dotenv/config";
 import { AsyncLocalStorage } from "node:async_hooks";
 import postgres from "@prisma/orm-postgres/runtime";
@@ -16,6 +17,68 @@ const pool = new Pool({
 	max: Number(env.PRISMA_POOL_MAX || 20),
 	min: Number(env.PRISMA_POOL_MIN || 2),
 });
+observePool(() => ({ idle: pool.idleCount, total: pool.totalCount, waiting: pool.waitingCount }));
+const telemetryEntities = new Set(
+	Object.entries(contractJson.roots).flatMap(([name, root]) => [name, root.model]),
+);
+const telemetryOperations = ["SELECT", "INSERT", "UPDATE", "DELETE", "BEGIN", "COMMIT", "ROLLBACK", "WITH"];
+// Physical pg execution is the only telemetry boundary: ORM, auth, raw SQL and transaction control.
+// SQL text, parameters and results are never exported; only the verb, a known table and the row count are.
+pool.on("connect", client => {
+	const query = client.query;
+	client.query = ((...args: unknown[]) => {
+		const config = args[0];
+		const sqlText =
+			typeof config === "string"
+				? config
+				: config && typeof config === "object" && "text" in config
+					? String(config.text)
+					: "";
+		const verb = sqlText.trim().split(/\s/)[0]?.toUpperCase() ?? "";
+		const operation = telemetryOperations.includes(verb) ? verb : "OTHER";
+		const candidate = sqlText.match(
+			/\b(?:FROM|INTO|UPDATE|JOIN)\s+(?:"?[a-zA-Z_][\w]*"?\.)?"?([a-zA-Z_][\w]*)"?/i,
+		)?.[1];
+		const finishTelemetry = startDependency(
+			`db.${operation}`,
+			undefined,
+			candidate && telemetryEntities.has(candidate) ? { "db.collection.name": candidate } : {},
+		);
+		const finish = (failed = false, result?: { rowCount?: number | null }) =>
+			finishTelemetry(
+				failed,
+				typeof result?.rowCount === "number" &&
+					Number.isFinite(result.rowCount) &&
+					result.rowCount >= 0
+					? { "db.response.returned_rows": result.rowCount }
+					: {},
+			);
+		const callback = args.at(-1);
+		if (typeof callback === "function")
+			args[args.length - 1] = (...values: unknown[]) => {
+				finish(Boolean(values[0]), values[1] as { rowCount?: number | null });
+				return callback(...values);
+			};
+		try {
+			const result = Reflect.apply(query, client, args);
+			if (result && typeof result.then === "function")
+				return result.then(
+					(value: unknown) => {
+						finish(false, value as { rowCount?: number | null });
+						return value;
+					},
+					(error: unknown) => {
+						finish(true);
+						throw error;
+					},
+				);
+			return result;
+		} catch (error) {
+			finish(true);
+			throw error;
+		}
+	}) as typeof client.query;
+});
 type Effect = () => Promise<void> | void;
 interface TransactionContext {
 	client: PoolClient;
@@ -31,7 +94,7 @@ const transactionalPool = new Proxy(pool, {
 		if (property === "connect")
 			return async () => {
 				const context = transactions.getStore();
-				if (!context) return target.connect();
+				if (!context) return traceOperation("db.pool.acquire", () => target.connect());
 				let connection = borrowed.get(context.client);
 				if (!connection) {
 					connection = new Proxy(context.client, {
@@ -82,7 +145,7 @@ export const withTransaction = async <Result>(
 			throw error;
 		}
 	}
-	const client = await pool.connect();
+	const client = await traceOperation("db.pool.acquire", () => pool.connect());
 	const context: TransactionContext = { client, effects: [], failed: false };
 	let result: Result;
 	try {
