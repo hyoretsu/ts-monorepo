@@ -18,7 +18,9 @@ export const envSchema = t.Object({
 		default: "http://localhost:3000",
 		format: "uri",
 	}),
-	BETTER_AUTH_SECRETS: t.String({ default: "1:local-template-development-secret-change-before-production" }),
+	BETTER_AUTH_SECRETS: t.String({
+		default: "1:local-template-development-secret-change-before-production",
+	}),
 	BETTER_AUTH_URL: t.String({ default: `${apiUrl}` }),
 	CORS_WHITELIST: t.String({ default: "*" }),
 	DATABASE_TEST_URL: t.Optional(
@@ -52,6 +54,7 @@ export const envSchema = t.Object({
 			format: "uri",
 		}),
 	),
+	S3_PREFIX: t.Optional(t.String()),
 	S3_SECRET_ACCESS_KEY: t.Optional(t.String()),
 	SERVICE_NAMESPACE: t.Optional(t.String()),
 	STATIC_DIR: t.Optional(
