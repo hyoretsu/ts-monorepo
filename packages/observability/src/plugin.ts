@@ -1,0 +1,21 @@
+import { registerTransformedSource } from "./source-maps";
+export { composeBuildMaps } from "./source-maps";
+import type { BunPlugin } from "bun";
+import { transform } from "./transform";
+export const instrumentationPlugin = (root: string, runtime = false): BunPlugin => ({
+	name: "application-observability",
+	setup(build) {
+		build.onLoad({ filter: /\.ts$/ }, async ({ path }) => {
+			const normalized = path.replaceAll("\\", "/");
+			if (
+				!normalized.startsWith(`${root}/src/`) ||
+				normalized.endsWith("/shared/infra/elysia/global.ts") ||
+				/\/(scripts|generated|tests|observability)\/|\.(test|spec)\.ts$/.test(normalized)
+			)
+				return { contents: await Bun.file(path).text(), loader: "ts" };
+			const contents = transform(await Bun.file(path).text(), path, root);
+			registerTransformedSource(path, contents, runtime);
+			return { contents, loader: "js" };
+		});
+	},
+});

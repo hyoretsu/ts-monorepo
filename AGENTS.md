@@ -122,4 +122,4 @@ Shared rules describe invariants; repository-specific sections describe the actu
 
 ## Development guides
 
-Before creating a workspace or changing workspace dependencies, exports or Turbo tasks, read [the project scaffolding guide](docs/development/project-scaffolding.md). Find development guides under `docs/development/` and read those applicable to the change; keep discovery links here when adding new ones. CD setup and release operations: [continuous delivery guide](docs/development/cd.md).
+Before creating a workspace or changing workspace dependencies, exports or Turbo tasks, read [the project scaffolding guide](docs/development/project-scaffolding.md). Find development guides under `docs/development/` and read those applicable to the change; keep discovery links here when adding new ones. CD setup and release operations: [continuous delivery guide](docs/development/cd.md). Telemetry (OpenTelemetry SDK, local Collector/Grafana stack, instrumentation rules): [observability guide](docs/development/observability.md).

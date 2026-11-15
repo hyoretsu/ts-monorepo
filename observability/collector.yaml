@@ -1,0 +1,129 @@
+{
+  "extensions": { "health_check": { "endpoint": "0.0.0.0:13133" } },
+  "receivers": { "otlp": { "protocols": { "http": { "endpoint": "0.0.0.0:4318" } } } },
+  "processors":
+    {
+      "memory_limiter": { "check_interval": "1s", "limit_mib": 512, "spike_limit_mib": 128 },
+      "batch": { "timeout": "1s", "send_batch_size": 512 },
+      "tail_sampling":
+        {
+          "decision_wait": "30s",
+          "num_traces": 10000,
+          "expected_new_traces_per_sec": 100,
+          "policies":
+            [
+              {
+                "name": "development",
+                "type": "string_attribute",
+                "string_attribute":
+                  { "key": "deployment.environment.name", "values": ["development", "test"] },
+              },
+              { "name": "errors", "type": "status_code", "status_code": { "status_codes": ["ERROR"] } },
+              { "name": "slow", "type": "latency", "latency": { "threshold_ms": 2000 } },
+              { "name": "baseline", "type": "probabilistic", "probabilistic": { "sampling_percentage": 10 } },
+            ],
+        },
+      "filter/http-diagnostics":
+        {
+          "error_mode": "ignore",
+          "traces": { "span": ['instrumentation_scope.name != "http"', "kind != SPAN_KIND_SERVER"] },
+        },
+    },
+  "exporters":
+    {
+      "otlphttp/tempo":
+        {
+          "endpoint": "http://tempo:4318",
+          "sending_queue": { "queue_size": 1000 },
+          "retry_on_failure": { "max_elapsed_time": "30s" },
+        },
+      "otlphttp/loki":
+        {
+          "endpoint": "http://loki:3100/otlp",
+          "sending_queue": { "queue_size": 1000 },
+          "retry_on_failure": { "max_elapsed_time": "30s" },
+        },
+      "prometheus":
+        {
+          "endpoint": "0.0.0.0:8889",
+          "enable_open_metrics": true,
+          "resource_to_telemetry_conversion": { "enabled": true },
+        },
+    },
+  "service":
+    {
+      "extensions": ["health_check"],
+      "pipelines":
+        {
+          "traces":
+            {
+              "receivers": ["otlp"],
+              "processors": ["memory_limiter", "tail_sampling", "batch"],
+              "exporters": ["otlphttp/tempo"],
+            },
+          "logs":
+            {
+              "receivers": ["otlp"],
+              "processors": ["memory_limiter", "batch"],
+              "exporters": ["otlphttp/loki"],
+            },
+          "metrics":
+            {
+              "receivers": ["otlp", "spanmetrics"],
+              "processors": ["memory_limiter", "batch"],
+              "exporters": ["prometheus"],
+            },
+          "traces/exemplars":
+            {
+              "receivers": ["otlp"],
+              "processors": ["memory_limiter", "filter/http-diagnostics"],
+              "exporters": ["spanmetrics"],
+            },
+        },
+      "telemetry":
+        {
+          "metrics":
+            {
+              "readers": [{ "pull": { "exporter": { "prometheus": { "host": "0.0.0.0", "port": 8888 } } } }],
+            },
+        },
+    },
+  "connectors":
+    {
+      "spanmetrics":
+        {
+          "namespace": "otel.request",
+          "histogram":
+            {
+              "unit": "s",
+              "explicit":
+                {
+                  "buckets":
+                    [
+                      "1ms",
+                      "5ms",
+                      "10ms",
+                      "25ms",
+                      "50ms",
+                      "100ms",
+                      "250ms",
+                      "500ms",
+                      "1s",
+                      "2s",
+                      "5s",
+                      "10s",
+                    ],
+                },
+            },
+          "dimensions": [{ "name": "http.route", "default": "unmatched" }],
+          "include_instrumentation_scope": ["http"],
+          "resource_metrics_cache_size": 128,
+          "aggregation_cardinality_limit": 2000,
+          "metrics_flush_interval": "15s",
+          "metrics_expiration": "5m",
+          "exemplars": { "enabled": true },
+          "resource_metrics_key_attributes":
+            ["service.name", "service.instance.id", "deployment.environment.name", "service.version"],
+        },
+    },
+}

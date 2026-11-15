@@ -263,6 +263,10 @@ exports; preserve existing prerequisites such as generation or variant preparati
   the custom TypeBox generator. Existing `@template/domain` also exports source. These
   are legacy exceptions, not patterns for new public entry points; no migration is
   included with this guide.
+- `@template/observability` exports TypeScript source (`src/`) like `@template/domain`: the Bun
+  preload/build plugin and the Vite client consume it directly. It is a legacy-style exception, not a
+  pattern for new packages. Its workspace is listed in `scripts/validate-staged.ts`, both backend
+  Dockerfiles copy it to the runtime image and every Dockerfile copies its manifest for the offline install.
 - Backend `export` writes `backend/out/openapi.json`; backend runtime build writes
   `dist/`. Frontend Kubb currently writes `frontend/src/lib/api/generated/`. Never
   edit those generated files. Use the existing SQL export -> backend export ->

@@ -1,12 +1,12 @@
 {
 	"$schema": "https://turborepo.dev/schema.json",
 	"globalEnv": ["VARIANT"],
-	"globalPassThroughEnv": ["DATABASE_URL"],
+	"globalPassThroughEnv": ["DATABASE_URL", "OTEL_*"],
 	"tasks": {
 		"build": {
 			"cache": false,
 			"dependsOn": ["^export", "generate", "variant:prepare"],
-			"env": ["VITE_API_URL", "VITE_APP_URL"],
+			"env": ["VITE_API_URL", "VITE_APP_URL", "VITE_OTEL_ENABLED"],
 			"inputs": ["$TURBO_DEFAULT$", "!src/**/generated/**"],
 			"outputLogs": "new-only",
 			"outputs": ["build/**", "dist/**", "out/**", ".next/**", "!.next/cache/**"],
