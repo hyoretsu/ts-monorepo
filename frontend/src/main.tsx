@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { initializeVisibleViewport } from "./lib/visible-viewport";
 import "@fontsource-variable/inter/index.css";
 import { initializeDeepLinks } from "./lib/deep-links";
+import { telemetry } from "./lib/observability";
 import { reactQueryClient } from "./lib/tanstack";
 import { Providers } from "./Providers";
 import { routeTree } from "./routeTree.gen";
@@ -26,6 +27,9 @@ const router = createRouter({
 	defaultPreloadStaleTime: 0,
 	routeTree,
 });
+
+router.subscribe("onBeforeNavigate", () => telemetry.navigationStart());
+router.subscribe("onResolved", () => telemetry.navigation());
 
 declare module "@tanstack/react-router" {
 	interface Register {
