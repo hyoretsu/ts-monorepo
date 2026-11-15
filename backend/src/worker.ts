@@ -1,35 +1,5 @@
-import "@/env";
-import { ProcessExample } from "./modules/example/useCases/ProcessExample";
-import { RabbitMqBroker } from "./shared/infra/broker/RabbitMqBroker";
-import { cache } from "./shared/infra/cache";
-import { OutboxPublisher } from "./shared/infra/outbox/PrismaOutbox";
-import { closeDatabase, db } from "./shared/infra/sql";
-import { createPrismaUnitOfWork } from "./shared/repositories/prisma";
+import { initialize } from "@template/observability/sdk";
+import { projectName } from "./shared/infra/service-namespace";
 
-const broker = new RabbitMqBroker();
-const publisher = new OutboxPublisher(db, broker);
-const processor = new ProcessExample(createPrismaUnitOfWork(db));
-let stopped = false;
-const shutdown = () => {
-	stopped = true;
-};
-process.on("SIGINT", shutdown);
-process.on("SIGTERM", shutdown);
-await broker.consume("process-example", "example.created", event => processor.execute(event));
-await broker.consume("cache-invalidation", "example.*", event =>
-	cache.invalidate(`examples:${event.userId}`),
-);
-try {
-	while (!stopped) {
-		try {
-			await publisher.publishBatch();
-		} catch (error) {
-			console.error("Outbox publication failed", error);
-		}
-		await Bun.sleep(500);
-	}
-} finally {
-	await broker.close();
-	await cache.close();
-	await closeDatabase();
-}
+initialize("worker", projectName);
+await import("./worker-app");

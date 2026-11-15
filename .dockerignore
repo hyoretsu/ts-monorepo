@@ -4,3 +4,8 @@ dist
 generated
 node_modules
 out
+
+.env
+.env.*
+**/.env
+**/.env.*

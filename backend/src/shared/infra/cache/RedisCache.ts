@@ -1,3 +1,4 @@
+import { operation, recordCacheResult } from "@template/observability";
 import { RedisClient } from "bun";
 import type { Cache } from "@/shared/types/events";
 import { serviceKey } from "../service-namespace";
@@ -5,7 +6,20 @@ import { serviceKey } from "../service-namespace";
 export class RedisCache implements Cache {
 	readonly client: RedisClient;
 	constructor(url = process.env.REDIS_URL) {
-		this.client = new RedisClient(url, { autoReconnect: true, connectionTimeout: 500 });
+		const client = new RedisClient(url, { autoReconnect: true, connectionTimeout: 500 });
+		// Redis spans sit at the physical command boundary; keys and values are never recorded.
+		this.client = new Proxy(client, {
+			get(target, key) {
+				const value = Reflect.get(target, key, target);
+				if (typeof value !== "function") return value;
+				return (...args: unknown[]) =>
+					operation(
+						`redis.${typeof key === "string" && ["send", "get", "set", "del", "exists", "expire", "incr", "close", "connect"].includes(key) ? key : "command"}`,
+						() => Reflect.apply(value, target, args),
+						{ "db.system.name": "redis" },
+					);
+			},
+		});
 	}
 	async read<T>(scope: string, key: string, load: () => Promise<T>): Promise<T> {
 		const generationKey = serviceKey(`cache:${scope}:generation`);
@@ -13,7 +27,11 @@ export class RedisCache implements Cache {
 			const generation = (await this.client.get(generationKey)) ?? "0";
 			const entry = serviceKey(`cache:${scope}:${generation}:${key}`);
 			const cached = await this.client.get(entry);
-			if (cached !== null) return JSON.parse(cached) as T;
+			if (cached !== null) {
+				recordCacheResult("hit");
+				return JSON.parse(cached) as T;
+			}
+			recordCacheResult("miss");
 			const value = await load();
 			// Generation check and write are atomic; an invalidation always wins.
 			await this.client.send("EVAL", [

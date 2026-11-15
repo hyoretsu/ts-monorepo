@@ -1,14 +1,20 @@
 import cors from "@elysiajs/cors";
 import staticPlugin from "@elysiajs/static";
 import { timeConversion } from "@hyoretsu/utils";
+import { clientGateway } from "@template/observability/gateway";
 import Elysia from "elysia";
 import { envSchema } from "@/env";
 import { DomainError } from "@/shared/errors/DomainError";
 import { auth } from "@/shared/infra/betterAuth";
+import { projectName } from "../service-namespace";
 import { TAURI_ORIGINS } from "../tauri-origins";
 import { GlobalPlugin } from "./global";
 import { OpenAPI } from "./openapi";
 import { consume } from "./rateLimit";
+
+const trustedOrigins = [...(process.env.CORS_WHITELIST?.split(",").filter(Boolean) ?? []), ...TAURI_ORIGINS];
+// Web/Tauri export a restricted trace subset through this gateway; it stays 404 while telemetry is disabled.
+const receiveTelemetry = clientGateway(projectName, trustedOrigins);
 
 export const app = new Elysia({ normalize: "typebox" })
 	.env(envSchema)
@@ -22,11 +28,13 @@ export const app = new Elysia({ normalize: "typebox" })
 			};
 		}
 	})
+	.use(cors({ credentials: true, origin: trustedOrigins }))
+	.post(
+		"/telemetry/traces",
+		({ request, server }) => receiveTelemetry(request, server?.requestIP(request)?.address),
+		{ detail: { hide: true }, parse: "none" },
+	)
 	.use([
-		cors({
-			credentials: true,
-			origin: [...(process.env.CORS_WHITELIST?.split(",").filter(Boolean) ?? []), ...TAURI_ORIGINS],
-		}),
 		staticPlugin({
 			assets: process.env.STATIC_DIR!,
 			prefix: "/static",

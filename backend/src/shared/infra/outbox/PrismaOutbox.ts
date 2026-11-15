@@ -1,3 +1,4 @@
+import { captureContext, linkedOperation, recordOutboxBacklog } from "@template/observability";
 import type { TxClient } from "@/shared/repositories/UnitOfWork";
 import type { DomainEvent, EventBroker } from "@/shared/types/events";
 import { type DatabaseClient, queryRaw } from "../sql";
@@ -9,6 +10,7 @@ export class PrismaOutbox {
 			aggregateId: event.aggregateId,
 			id: event.id,
 			payload: JSON.parse(JSON.stringify(event.payload)),
+			telemetryContext: event.telemetryContext ?? captureContext(),
 			type: event.type,
 			userId: event.userId,
 		});
@@ -27,12 +29,14 @@ export class OutboxPublisher {
    UPDATE "OutboxEvent" SET "leaseToken"=$1, "leaseUntil"=NOW()+INTERVAL '30 seconds'
    WHERE id IN (SELECT id FROM "OutboxEvent" WHERE "publishedAt" IS NULL AND "availableAt"<=NOW()
     AND ("leaseUntil" IS NULL OR "leaseUntil"<NOW()) ORDER BY "createdAt" FOR UPDATE SKIP LOCKED LIMIT 25)
-   RETURNING id, type, "userId", "aggregateId", payload`,
+   RETURNING id, type, "userId", "aggregateId", payload, "telemetryContext"`,
 			[token],
 		);
 		for (const event of rows) {
 			try {
-				await this.broker.publish(event);
+				await linkedOperation("messaging.publish", event.telemetryContext, () =>
+					this.broker.publish(event),
+				);
 				await this.db.orm.public.OutboxEvent.where({
 					id: event.id,
 					leaseToken: token,
@@ -49,5 +53,16 @@ export class OutboxPublisher {
 			}
 		}
 		return rows.length;
+	}
+	/** Unpublished events, reported as a gauge; telemetry reads must never stop publication. */
+	async recordBacklog() {
+		try {
+			const [row] = await queryRaw<{ count: string }>(
+				'SELECT count(*)::text AS count FROM "OutboxEvent" WHERE "publishedAt" IS NULL',
+			);
+			recordOutboxBacklog(Number(row?.count ?? 0));
+		} catch {
+			/* Backlog is informational. */
+		}
 	}
 }

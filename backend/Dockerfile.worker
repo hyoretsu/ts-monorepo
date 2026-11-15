@@ -13,6 +13,7 @@ COPY backend/package.json backend/package.json
 COPY frontend/package.json frontend/package.json
 COPY packages/sql/package.json packages/sql/package.json
 COPY packages/domain/package.json packages/domain/package.json
+COPY packages/observability/package.json packages/observability/package.json
 
 RUN bun i --offline --frozen-lockfile --linker=isolated --ignore-scripts
 
@@ -46,6 +47,7 @@ COPY --from=build /app/packages/sql/out ./packages/sql/out
 COPY --from=build /app/packages/sql/src ./packages/sql/src
 COPY --from=build /app/packages/sql/migrations ./packages/sql/migrations
 COPY --from=build /app/packages/domain ./packages/domain
+COPY --from=build /app/packages/observability ./packages/observability
 
 WORKDIR /app/backend
 

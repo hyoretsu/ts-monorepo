@@ -4,6 +4,8 @@ export interface DomainEvent {
 	userId: string;
 	aggregateId: string;
 	payload: Record<string, unknown>;
+	/** W3C trace context captured when the event was recorded; links delayed publication and consumption. */
+	telemetryContext?: Record<string, string>;
 }
 export interface EventBroker {
 	publish(event: DomainEvent): Promise<void>;

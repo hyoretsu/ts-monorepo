@@ -1,3 +1,10 @@
+import {
+	linkedOperation,
+	markOperationFailed,
+	operation,
+	recordDelivery,
+	recordJob,
+} from "@template/observability";
 import amqp, { type ChannelModel, type ConfirmChannel, type ConsumeMessage } from "amqplib";
 import type { DomainEvent, EventBroker } from "@/shared/types/events";
 import { serviceExchange, serviceKey } from "../service-namespace";
@@ -70,9 +77,12 @@ export class RabbitMqBroker implements EventBroker {
 	private async register(channel: ConfirmChannel, name: string, pattern: string, handler: Handler) {
 		await this.topology(channel, name, pattern);
 		const queue = serviceKey(name);
-		await channel.consume(queue, message => {
-			if (message) void this.handle(channel, queue, message, handler);
-		});
+		await channel.consume(
+			queue,
+			/* @otel-ignore */ message => {
+				if (message) void this.handle(channel, name, queue, message, handler);
+			},
+		);
 	}
 	private send(channel: ConfirmChannel, queue: string, message: ConsumeMessage, attempts: number) {
 		return new Promise<void>((resolve, reject) =>
@@ -88,28 +98,64 @@ export class RabbitMqBroker implements EventBroker {
 			),
 		);
 	}
-	private async handle(channel: ConfirmChannel, queue: string, message: ConsumeMessage, handler: Handler) {
+	private async handle(
+		channel: ConfirmChannel,
+		name: string,
+		queue: string,
+		message: ConsumeMessage,
+		handler: Handler,
+	) {
+		let event: DomainEvent | undefined;
 		try {
-			await handler(JSON.parse(message.content.toString()) as DomainEvent);
-			channel.ack(message);
+			event = JSON.parse(message.content.toString()) as DomainEvent;
 		} catch {
-			const attempts = Number(message.properties.headers?.attempts ?? 0) + 1;
+			/* Invalid envelopes follow the retry/DLQ policy below. */
+		}
+		const startedAt = performance.now();
+		const timestamp = message.properties.timestamp as number | undefined;
+		const lagMs = timestamp === undefined ? null : Math.max(0, Date.now() - timestamp);
+		// Delayed consumption starts a new trace linked to the publishing request, never a child of it.
+		await linkedOperation("messaging.process", event?.telemetryContext, async () => {
+			let result: "completed" | "failed_dlq" | "failed_retry" = "completed";
 			try {
-				await this.send(
-					channel,
-					attempts >= Number(process.env.RABBITMQ_MAX_ATTEMPTS ?? 3) ? `${queue}.dlq` : `${queue}.retry`,
-					message,
-					attempts,
-				);
+				if (!event) throw new Error("Invalid event envelope");
+				await handler(event);
 				channel.ack(message);
 			} catch {
+				const attempts = Number(message.properties.headers?.attempts ?? 0) + 1;
+				const exhausted = attempts >= Number(process.env.RABBITMQ_MAX_ATTEMPTS ?? 3);
+				result = exhausted ? "failed_dlq" : "failed_retry";
+				markOperationFailed();
 				try {
-					channel.nack(message, false, true);
+					await operation(exhausted ? "messaging.dlq" : "messaging.retry", async () => {
+						await this.send(
+							channel,
+							exhausted ? `${queue}.dlq` : `${queue}.retry`,
+							message,
+							attempts,
+						);
+						channel.ack(message);
+					});
 				} catch {
-					/* Closed channels redeliver unacknowledged messages. */
+					try {
+						channel.nack(message, false, true);
+					} catch {
+						/* Closed channels redeliver unacknowledged messages. */
+					}
 				}
 			}
-		}
+			recordDelivery(name, result);
+			recordJob(name, lagMs, result === "completed" ? "ok" : "error");
+			console.info(
+				JSON.stringify({
+					durationMs: Number((performance.now() - startedAt).toFixed(2)),
+					outcome: result === "completed" ? "ok" : "error",
+					queue: name,
+					queueLagMs: lagMs,
+					type: "worker_job",
+				}),
+			);
+		});
 	}
 	async consume(name: string, pattern: string, handler: Handler) {
 		const existed = this.channel;
@@ -128,7 +174,12 @@ export class RabbitMqBroker implements EventBroker {
 				serviceExchange("events"),
 				event.type,
 				Buffer.from(JSON.stringify(event)),
-				{ contentType: "application/json", messageId: event.id, persistent: true },
+				{
+					contentType: "application/json",
+					messageId: event.id,
+					persistent: true,
+					timestamp: Date.now(),
+				},
 				error => (error ? reject(error) : resolve()),
 			),
 		);
